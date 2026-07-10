@@ -28,6 +28,15 @@ def fetch_route_data(dep, arr):
     response = requests.get(url, params=params)
     return response.json()
 
+def calculate_delay(scheduled, actual):
+    """Returns delay in minutes, or None if either time is missing."""
+    if not scheduled or not actual:
+        return None
+    scheduled_dt = datetime.fromisoformat(scheduled)
+    actual_dt = datetime.fromisoformat(actual)
+    delay = (actual_dt - scheduled_dt).total_seconds() / 60
+    return round(delay, 1)
+
 def save_to_csv(flights, dep, arr):
     """Appends each flight found to our CSV file."""
     file_exists = os.path.isfile(CSV_FILE) and os.path.getsize(CSV_FILE) > 0
@@ -41,6 +50,7 @@ def save_to_csv(flights, dep, arr):
                 'collected_at', 'route', 'flight_date', 'flight_status',
                 'dep_scheduled', 'dep_actual', 'dep_delay_min',
                 'arr_scheduled', 'arr_actual', 'arr_delay_min',
+                'calculated_dep_delay', 'calculated_arr_delay',
                 'airline'
             ])
         
@@ -56,6 +66,8 @@ def save_to_csv(flights, dep, arr):
                 flight['arrival'].get('scheduled'),
                 flight['arrival'].get('actual'),
                 flight['arrival'].get('delay'),
+                calculate_delay(flight['departure'].get('scheduled'), flight['departure'].get('actual')),
+                calculate_delay(flight['arrival'].get('scheduled'), flight['arrival'].get('actual')),
                 flight['airline'].get('name')
             ])
 
