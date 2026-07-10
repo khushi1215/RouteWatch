@@ -35,13 +35,11 @@
 ## 6. Project name: "RouteWatch"
 
 - Simple, professional, describes function (watching specific routes over time)
-- Considered German names (MeineReise, Wanderdaten) — went with English for clarity in interviews regardless of destination country
 
 ## 7. Why these 3 specific routes?
 
 **Routes chosen: BOM→FRA, DEL→CDG, BLR→AMS**
 
-- Personal relevance: Mumbai–Frankfurt ties directly to Germany goal
 - Comparison value: 3 different European hubs (Germany/France/Netherlands) — not just Germany, richer analysis
 - 3 different Indian metro cities — avoids one city's local quirks skewing results
 - **Why only 3, not 10-15:**
