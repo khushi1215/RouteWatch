@@ -10,9 +10,8 @@
 
 ## 2. Why does this project exist?
 
-- Needed a genuine Data Science portfolio project for job hunting (GenAI/DS/DA roles) + German Master's admission
+- Needed a genuine Data Science portfolio project.
 - Didn't want a generic/copied project (Titanic, churn prediction, common Kaggle flight-delay clones)
-- Personal hook: I'm moving to Germany for my Master's — wanted to understand real delay risk on routes I might actually fly
 
 ## 3. Why flight delay prediction specifically?
 
