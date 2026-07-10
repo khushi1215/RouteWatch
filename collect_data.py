@@ -51,7 +51,7 @@ def save_to_csv(flights, dep, arr):
                 'dep_scheduled', 'dep_actual', 'dep_delay_min',
                 'arr_scheduled', 'arr_actual', 'arr_delay_min',
                 'calculated_dep_delay', 'calculated_arr_delay',
-                'airline'
+                'flight_number', 'airline'
             ])
         
         for flight in flights.get('data', []):
@@ -68,6 +68,7 @@ def save_to_csv(flights, dep, arr):
                 flight['arrival'].get('delay'),
                 calculate_delay(flight['departure'].get('scheduled'), flight['departure'].get('actual')),
                 calculate_delay(flight['arrival'].get('scheduled'), flight['arrival'].get('actual')),
+                flight['flight'].get('iata'),
                 flight['airline'].get('name')
             ])
 
