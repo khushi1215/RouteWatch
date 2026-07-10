@@ -10,9 +10,8 @@
 
 ## 2. Why does this project exist?
 
-- Needed a genuine Data Science portfolio project for job hunting (GenAI/DS/DA roles) + German Master's admission
+- Needed a genuine Data Science portfolio project.
 - Didn't want a generic/copied project (Titanic, churn prediction, common Kaggle flight-delay clones)
-- Personal hook: I'm moving to Germany for my Master's — wanted to understand real delay risk on routes I might actually fly
 
 ## 3. Why flight delay prediction specifically?
 
@@ -36,13 +35,11 @@
 ## 6. Project name: "RouteWatch"
 
 - Simple, professional, describes function (watching specific routes over time)
-- Considered German names (MeineReise, Wanderdaten) — went with English for clarity in interviews regardless of destination country
 
 ## 7. Why these 3 specific routes?
 
 **Routes chosen: BOM→FRA, DEL→CDG, BLR→AMS**
 
-- Personal relevance: Mumbai–Frankfurt ties directly to Germany goal
 - Comparison value: 3 different European hubs (Germany/France/Netherlands) — not just Germany, richer analysis
 - 3 different Indian metro cities — avoids one city's local quirks skewing results
 - **Why only 3, not 10-15:**
