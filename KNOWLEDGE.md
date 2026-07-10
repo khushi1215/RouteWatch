@@ -134,20 +134,31 @@
 
 - Small dataset scale (portfolio-scope, not production-scale) — deliberate tradeoff for depth of understanding
 - Single month snapshot — can't yet separate "route-specific" patterns from "this month's unusual events" (weather, strikes, etc.)
-- Same physical flight may appear multiple times across different collection days (different daily snapshots) — **deduplication by flight number + date is a required future cleaning step, not yet done**
 - Timezone handling assumed correct (timestamps appear UTC-normalized via `+00:00` suffix) but not yet explicitly verified
 
-## 21. Progress log
+## 21. Data Quality Finding #3 — route+date+airline is not a unique flight identifier
+
+- Attempted deduplication check by grouping on route + flight_date + airline
+- Found suspiciously high counts (e.g., 7 rows for one route/date/airline combination)
+- **Realized the identifier was flawed:** an airline can fly the same route multiple times a day (e.g., a morning and evening flight) — route+date+airline doesn't uniquely identify a single flight
+- Inspected the raw API response directly (`data['data'][0]['flight']`) to check what identifying fields actually exist
+- Found a `flight.iata` field (e.g., `LH757`) — the true flight number — that had never been captured in the CSV
+- **Fix:** added `flight_number` as a saved column in `collect_data.py`, going forward
+- **Limitation:** only applies to data collected from this point onward — the earlier ~127 rows lack a flight number and can't be deduplicated the same reliable way. Accepted as a normal part of iterative pipeline improvement — the pipeline gets more correct over time as gaps are discovered.
+- **Interview point:** demonstrates recognizing a flawed assumption (route+date+airline as a unique key) by testing it against real data rather than assuming it was correct, then going to the raw API source to find the actual correct identifier instead of guessing or working around it superficially
+
+## 22. Progress log
 
 | Date | Landed/Complete flights | Total rows | Key event |
 |---|---|---|---|
 | Day 1 | ~10 (est.) | 36 | First successful collection, 3 routes |
 | Day 2 | 29 | 67 | Found delay-field mismatch (Finding #1) |
 | Day 3 | 57 | 127 | Found status-lag issue (Finding #2), added `calculate_delay()` to script |
+| Day 3 (cont.) | 57 | 127 | Found deduplication flaw (Finding #3) — route+date+airline not unique, added `flight_number` capture to script |
 
-## 22. Still to come (will update as we go)
+## 23. Still to come (will update as we go)
 
-- Deduplicate flights appearing across multiple collection days
+- Implement actual deduplication logic using route + flight_date + flight_number (now that flight_number is being captured)
 - Continue daily collection until dataset is large enough for modeling (target: 200-300+ complete flights)
 - Full EDA: delay patterns by route, airline, day of week, time of day
 - Feature engineering
