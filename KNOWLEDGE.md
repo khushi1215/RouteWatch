@@ -146,6 +146,8 @@
 - **Fix:** added `flight_number` as a saved column in `collect_data.py`, going forward
 - **Limitation:** only applies to data collected from this point onward — the earlier ~127 rows lack a flight number and can't be deduplicated the same reliable way. Accepted as a normal part of iterative pipeline improvement — the pipeline gets more correct over time as gaps are discovered.
 - **Interview point:** demonstrates recognizing a flawed assumption (route+date+airline as a unique key) by testing it against real data rather than assuming it was correct, then going to the raw API source to find the actual correct identifier instead of guessing or working around it superficially
+- **Resolution confirmed:** re-ran the same duplicate check using route+flight_date+flight_number — every group returned count of exactly 1. This confirms the earlier high counts were genuinely different flights (same airline, same route, same day, different flight numbers), not duplicate data. No rows needed to be dropped — but the investigation was still necessary, since assuming either way without checking would have been a guess, not a verified conclusion.
+- **Secondary bug found and fixed:** the CSV header row had been written once, before `flight_number` was added to the script — so newer rows had 14 values but the header only listed 13 column names. This caused GitHub to fail rendering the CSV as a table, and would have caused column misalignment issues in pandas too. Fixed by manually correcting the header row to match the actual data.
 
 ## 22. Progress log
 
@@ -158,7 +160,6 @@
 
 ## 23. Still to come (will update as we go)
 
-- Implement actual deduplication logic using route + flight_date + flight_number (now that flight_number is being captured)
 - Continue daily collection until dataset is large enough for modeling (target: 200-300+ complete flights)
 - Full EDA: delay patterns by route, airline, day of week, time of day
 - Feature engineering
