@@ -149,7 +149,19 @@
 - **Resolution confirmed:** re-ran the same duplicate check using route+flight_date+flight_number — every group returned count of exactly 1. This confirms the earlier high counts were genuinely different flights (same airline, same route, same day, different flight numbers), not duplicate data. No rows needed to be dropped — but the investigation was still necessary, since assuming either way without checking would have been a guess, not a verified conclusion.
 - **Secondary bug found and fixed:** the CSV header row had been written once, before `flight_number` was added to the script — so newer rows had 14 values but the header only listed 13 column names. This caused GitHub to fail rendering the CSV as a table, and would have caused column misalignment issues in pandas too. Fixed by manually correcting the header row to match the actual data.
 
-## 22. Progress log
+## 22. Schema evolution — historical rows had inconsistent column counts
+
+- As `collect_data.py` was improved over Days 1-4 (adding `calculated_dep_delay`, `calculated_arr_delay`, then `flight_number`), older rows in the CSV were written with fewer columns than the current header expects
+- Result: Day 1-2 rows had 11 columns, some Day 3 rows had 13, Day 4 rows have the full 14 — inconsistent row widths in the same file
+- This caused GitHub's CSV table renderer to fail, and would have caused column misalignment when loading into pandas
+- **Fix:** wrote a one-time cleanup script that reads every row, detects short rows, and pads them with empty values in the correct position (inserting blanks for the newer columns while keeping `airline` as the last field) so every row consistently has 14 columns
+- **Lesson:** this is a normal consequence of iteratively improving a data pipeline over multiple collection days — old records don't retroactively gain new fields on their own. A cleanup/migration step is needed whenever a pipeline's schema changes mid-collection.
+- **Interview point:** understanding schema evolution and writing a migration fix for historical records is a real data engineering skill, not just a one-off bug fix
+- **Handling the two affected fields differently, based on whether backfilling is possible:**
+  - `calculated_dep_delay`/`calculated_arr_delay`: these are **always recomputed fresh in pandas** from raw timestamps (`dep_scheduled`, `dep_actual`, `arr_scheduled`, `arr_actual`) during analysis, rather than trusted from the CSV column — since raw timestamps exist for every row regardless of collection date, this works uniformly for old and new rows alike. The CSV's own calculated columns are just a convenience record, not the analysis source of truth.
+  - `flight_number`: genuinely cannot be backfilled — the API wasn't asked to return it for older snapshots, and that information is permanently lost for those rows. **Accepted limitation:** rows collected before Day 4 remain usable for route/airline/time-based aggregate analysis, but excluded from any analysis requiring per-flight identity (e.g., tracking one specific flight's full history)
+
+## 23. Progress log
 
 | Date | Landed/Complete flights | Total rows | Key event |
 |---|---|---|---|
@@ -157,8 +169,9 @@
 | Day 2 | 29 | 67 | Found delay-field mismatch (Finding #1) |
 | Day 3 | 57 | 127 | Found status-lag issue (Finding #2), added `calculate_delay()` to script |
 | Day 3 (cont.) | 57 | 127 | Found deduplication flaw (Finding #3) — route+date+airline not unique, added `flight_number` capture to script |
+| Day 4 | TBD | 152 | First collection with flight_number included; confirmed no true duplicates existed; found and fixed 2 schema bugs (header/row column mismatch from pipeline evolving over time) |
 
-## 23. Still to come (will update as we go)
+## 24. Still to come (will update as we go)
 
 - Continue daily collection until dataset is large enough for modeling (target: 200-300+ complete flights)
 - Full EDA: delay patterns by route, airline, day of week, time of day
