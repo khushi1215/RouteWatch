@@ -1,4 +1,4 @@
-collected_at,route,flight_date,flight_status,dep_scheduled,dep_actual,dep_delay_min,arr_scheduled,arr_actual,arr_delay_min,airline
+collected_at,route,flight_date,flight_status,dep_scheduled,dep_actual,dep_delay_min,arr_scheduled,arr_actual,arr_delay_min,calculated_dep_delay,calculated_arr_delay,flight_number,airline
 2026-07-08T22:10:30.051593,BOM-FRA,2026-07-09,scheduled,2026-07-09T02:40:00+00:00,,,2026-07-09T08:05:00+00:00,,20,Lufthansa
 2026-07-08T22:10:30.051661,BOM-FRA,2026-07-08,landed,2026-07-08T11:40:00+00:00,2026-07-08T12:10:00+00:00,,2026-07-08T17:55:00+00:00,2026-07-08T17:30:00+00:00,,Lufthansa
 2026-07-08T22:10:30.051677,BOM-FRA,2026-07-08,landed,2026-07-08T11:40:00+00:00,2026-07-08T12:10:00+00:00,,2026-07-08T17:55:00+00:00,2026-07-08T17:30:00+00:00,,Air India
