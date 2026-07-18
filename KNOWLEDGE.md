@@ -136,7 +136,7 @@
 
 - Small dataset scale (portfolio-scope, not production-scale) — deliberate tradeoff for depth of understanding
 - Single month snapshot — can't yet separate "route-specific" patterns from "this month's unusual events" (weather, strikes, etc.)
-- Timezone handling assumed correct (timestamps appear UTC-normalized via +00:00 suffix) but not yet explicitly verified
+- ~~Timezone handling assumed correct~~ — verified and resolved, see Finding #4 (Section 27): timestamps are actually local time mislabeled as UTC, but this does not affect within-airport delay calculations already used in analysis
 
 ## 21. Data Quality Finding #3 — route+date+airline is not a unique flight identifier
 
@@ -172,6 +172,10 @@
 | Day 3 (cont.) | 57 | 127 | Found deduplication flaw (Finding #3) — route+date+airline not unique, added flight_number capture to script |
 | Day 4 | TBD | 152 | First collection with flight_number included; confirmed no true duplicates existed; found and fixed 2 schema bugs (header/row column mismatch from pipeline evolving over time) |
 | Day 5 | 84 | 178 | Continued daily collection, steady growth toward 200-300 target |
+| Day 6 (checkpoint) | 120 | 232 | Confirmed BOM-FRA delay pattern still holding with more data; broke down by airline (delays spread across carriers, not one airline) |
+| Day 7-8 | Not individually logged | Not individually logged | Continued daily collection without a dedicated analysis checkpoint each day |
+| Day 9 (checkpoint) | 146 | 265 | Analyzed BOM-FRA by day-of-week and departure hour; found 2 AM slot has 51.7% delay rate (largest, most reliable sample in dataset); found and resolved Finding #4 (timezone mislabeling) |
+| Day 11 | 201 | 353 | Crossed into 200-300 complete-flight target range; ready to move toward feature engineering / modeling phase soon |
 
 ## 24. First EDA finding — BOM-FRA is meaningfully less reliable than the other two routes
 
