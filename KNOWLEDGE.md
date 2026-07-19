@@ -176,6 +176,7 @@
 | Day 7-8 | Not individually logged | Not individually logged | Continued daily collection without a dedicated analysis checkpoint each day |
 | Day 9 (checkpoint) | 146 | 265 | Analyzed BOM-FRA by day-of-week and departure hour; found 2 AM slot has 51.7% delay rate (largest, most reliable sample in dataset); found and resolved Finding #4 (timezone mislabeling) |
 | Day 11 | 201 | 353 | Crossed into 200-300 complete-flight target range; ready to move toward feature engineering / modeling phase soon |
+| Day 12 | 214 | 381 | Started modeling phase: built train/test split, trained first baseline Logistic Regression, diagnosed and fixed weak recall on delayed class via class_weight balancing |
 
 ## 24. First EDA finding — BOM-FRA is meaningfully less reliable than the other two routes
 
