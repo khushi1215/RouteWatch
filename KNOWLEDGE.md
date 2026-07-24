@@ -180,6 +180,7 @@
 | Day 13 | 232 | 408 | Examined model feature importance (strong agreement with EDA); investigated and resolved a Saturday delay-rate discrepancy between model and earlier EDA finding; rebuilt feature set with corrected airline grouping; re-evaluated model (perfect recall on delayed class, held with appropriate caution given small test set) |
 | Day 14 | 247 | TBD | Re-evaluated model with more data — recall dropped from 1.00 to 0.88, precision from 0.73 to 0.58, confirming the Day 13 caution that the perfect score was a small-sample artifact |
 | Day 15 | 260 | 465 | Continued daily collection; refactored and cleaned up the exploration notebook into a clear, organized 6-section structure; trained and compared a Random Forest model against the Logistic Regression baseline, decided to keep the simpler model |
+| Day 16 | 282 | 497 | Continued daily collection |
 
 ## 24. First EDA finding — BOM-FRA is meaningfully less reliable than the other two routes
 
