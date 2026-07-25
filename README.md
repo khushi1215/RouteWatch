@@ -2,7 +2,7 @@
 
 Self-collected flight tracking and delay analysis for India-Europe air travel.
 
-**Live app:** [routewatch.streamlit.app](https://routewatch.streamlit.app) *(link goes live once deployed, replace with actual URL)*
+**Live app:** [routewatch.streamlit.app](https://routewatch.streamlit.app)
 
 ## Why this project
 
