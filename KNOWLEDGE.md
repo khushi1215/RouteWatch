@@ -193,18 +193,91 @@
 - **Caveat, held honestly:** sample sizes (21-38 flights/route) are still moderate, not large — this is an early signal worth continuing to track, not yet a statistically bulletproof conclusion. Will re-run this exact analysis weekly as more data accumulates to see if the pattern holds.
 - **Why raw mean/median wasn't enough on its own:** averaging early and on-time flights together obscures the more practically useful question — "how often does this route actually run late?" The binary delay-rate metric answers that directly and is what the aviation industry itself standardizes on.
 
-## 25. Still to come (will update as we go)
+## 25. BOM-FRA time-based patterns — day of week and departure hour
 
-- Continue daily collection until dataset is large enough for modeling (target: 200-300+ complete flights)
-- Dig deeper into BOM-FRA delay pattern — check by airline, day of week, time of day
-- Full EDA: delay patterns by route, airline, day of week, time of day
-- Feature engineering
-- Handle class imbalance (check delayed vs on-time ratio once more data exists)
-- Model choice: classification (delayed/not, using 15+ min industry-standard threshold) over regression — reasoning: more robust/interpretable given dataset size
-- Model training + evaluation (precision/recall/F1/ROC-AUC, not just accuracy)
-- Feature importance / interpretability
-- Optional: simple Streamlit interface
-- Write final README with full narrative
+- At ~146 complete flights, checked day-of-week and departure-hour patterns specifically for BOM-FRA
+- **Day of week:** Monday/Saturday/Sunday showed 0% delay early on; Wednesday showed 36% (largest weekday sample); Tuesday and Friday looked dramatic (83%, 100%) but rested on very small samples (3-6 flights) and were not treated as reliable standalone figures
+- **General, more defensible takeaway at the time:** delays clustered on weekdays (Tue-Fri), weekends and Monday looked clean — though this Saturday figure specifically was later found to shift substantially as more data came in (see Section 30)
+- **Departure hour (stronger finding, larger sample):** only 3 distinct scheduled departure hours exist for BOM-FRA (2 AM, 8 AM, 11 AM). 2 AM showed 51.7% delayed (largest sample in the dataset, 29 flights), 8 AM 25%, 11 AM 0%
+- **Plausible explanation (hypothesis, not proven):** very early departures may face tighter aircraft turnaround, reduced ground staff at 2 AM, or delays cascading from earlier in the day/night — framed as a hypothesis worth investigating, not a stated fact
+- **Interview point:** distinguishing findings backed by large samples from those resting on a handful of data points is core statistical literacy — not all numbers in an early analysis deserve equal confidence
+
+## 26. Data Quality Finding #4 — timestamps are local time, mislabeled as UTC
+
+- Followed up on an open limitation flagged since Day 1: timezone handling was assumed correct but never explicitly verified
+- Took one BOM-FRA flight and checked scheduled flight duration: naive subtraction gave 6h15m, but a real BOM-FRA direct flight takes roughly 8-9 hours — a clear red flag
+- Manually converted both timestamps to true UTC using known airport timezones (Mumbai UTC+5:30, Frankfurt UTC+2 in summer): recalculated duration came to 9h45m, a realistic flight time
+- **Conclusion:** the API returns each timestamp in local time at that airport, but labels it with a +00:00 (UTC) suffix instead of the correct local offset — a mislabeling bug in the data source, not a value error
+- **Impact assessed carefully:** departure delay and arrival delay are each computed from two timestamps at the *same* airport, so the mislabeling cancels out — every route/airline/day/hour finding so far remains valid and unaffected. Any calculation mixing departure and arrival timestamps together (e.g. true flight duration) would be wrong if attempted, but no such calculation has been made
+- **Interview point:** verifying a flagged assumption rather than leaving it permanently unresolved, then precisely scoping which existing results are and are not affected, is stronger practice than either ignoring the risk or redoing everything unnecessarily
+
+## 27. Feature engineering — grouping rare airlines before encoding
+
+- Built initial feature set via one-hot encoding (route, airline, dep_hour, day_of_week, is_weekend) — first attempt produced 24 columns
+- Flagged a concern: several airlines (Alitalia, DHL Air, Lufthansa Cargo, Cathay Pacific) had only 2-8 flights each, meaning their one-hot columns would be almost entirely False, risking overfitting to near-noise rather than real patterns
+- **Decision:** grouped any airline with fewer than 10 flights into a single "Other" category before encoding
+- **Result:** reduced to 21-22 features (count shifts slightly as the dataset grows and airlines cross the 10-flight threshold), every remaining category backed by a meaningful sample size
+- **is_weekend as a simpler complement to day_of_week:** given day-of-week findings had shakier confidence on individual days at the time, including a simpler binary weekday/weekend flag gives the model a more robust, lower-variance signal alongside the more granular day feature
+- **Interview point:** recognizing when a categorical feature has too many rare levels for the available data, and choosing a principled way to consolidate them, is standard, important feature engineering practice
+
+## 28. First baseline model — Logistic Regression
+
+- At 214 complete flights (176 not delayed, 38 delayed, roughly 18% delay rate, moderately imbalanced), built the first model
+- **Train/test split:** 80/20, stratified on the target to preserve the delay ratio in both sets
+- **Why Logistic Regression first:** simple, fast, interpretable — establishes a baseline before trying anything more complex
+- **First attempt (default settings):** accuracy 0.84, but recall on the delayed class was only 0.25 — missing 75% of real delays despite looking "accurate" overall. Direct demonstration of why accuracy alone is misleading under class imbalance
+- **Fix tried:** class_weight='balanced' — tells the model to weight the minority (delayed) class more heavily during training
+- **Result:** recall on delayed class jumped from 0.25 to 0.88, precision 0.70, F1 improved from 0.36 to 0.78, overall accuracy improved to 0.91
+- **Honesty check, held deliberately:** test set was only 43 flights with just 8 delayed — a single flight's outcome swings these percentages by over 12 percentage points. A genuinely promising early result, not yet proof of a robust model
+- **Interview point:** diagnosing a specific weakness (poor recall on the minority class), understanding why (imbalance not being accounted for), then applying a targeted fix and verifying it worked, is a methodical modeling approach
+
+## 29. Model feature importance, and a finding that changed with more data
+
+- Examined Logistic Regression coefficients on the balanced model
+- **Strong agreement with EDA:** route_BOM-FRA was the single strongest delay-pushing feature, route_BLR-AMS the strongest on-time-pushing feature — the model independently learned the same core pattern found by hand in EDA, a good validation signal
+- **dep_hour** showed later departure hours associated with lower delay risk, directionally consistent with the BOM-FRA 2 AM vs 11 AM finding
+- **Discrepancy found and investigated, not smoothed over:** the model's day_of_week_Saturday coefficient was positive (pushes toward delay), which seemed to contradict the earlier EDA finding that BOM-FRA Saturdays were 0% delayed
+- **Resolution:** re-ran the day-of-week-by-route breakdown with the larger, current dataset — BOM-FRA Saturday had risen to 50% delayed (8/16 flights), up from an earlier small-sample 0% based on only 6 flights. BLR-AMS and DEL-CDG remained 0% delayed on Saturday. The model's coefficient was correct for the current data — the earlier EDA finding was accurate for its own smaller sample, but had since been superseded as more data came in
+- **Interview point:** a finding that's true for 6 data points may not hold at 16 — that's not a mistake, it's exactly why findings need re-checking as data grows rather than being treated as permanently settled. Investigating an apparent model/EDA discrepancy rather than ignoring it demonstrates rigor
+
+## 30. Model re-evaluated at 232 complete flights, with corrected feature set
+
+- Rebuilt the feature set with more data (232 complete flights) and confirmed the airline-grouping fix was correctly applied
+- Re-trained the balanced Logistic Regression: precision 0.73, **recall 1.00**, F1 0.84, overall accuracy 0.94 — caught all 8 delayed test flights, 3 false alarms
+- **Held with deliberate caution, not pure celebration:** a perfect 100% recall on only 8 delayed test examples is a result to treat skeptically. Two honest possibilities: the features genuinely capture a strong pattern, or the test set is still small enough that a lucky split is entirely plausible
+- **Plan stated at the time:** continue tracking this metric as data grows — a single perfect score on 8 examples is not, by itself, proof of anything definitive
+- **Interview point:** treating an unexpectedly perfect result with more scrutiny, not less, is a mark of statistical maturity
+
+## 31. Prediction confirmed — model performance settled with more data
+
+- At 247 complete flights, re-ran the exact same balanced Logistic Regression pipeline
+- **Result:** recall on delayed class dropped from the earlier 1.00 to 0.88 (7/8 caught), precision dropped from 0.73 to 0.58 (5 false alarms, up from 3), overall accuracy dropped from 0.94 to 0.88
+- **This directly confirms the caution flagged in Section 31:** the earlier perfect recall was, as suspected, partly a small-test-set artifact. Performance settled to a more realistic, still genuinely solid level (0.88 recall) rather than the possibly-lucky perfect score seen before
+- **Interview point:** being able to say "I predicted this result would soften with more data, and it did" is a stronger story than either reporting the perfect score without caveats, or never checking whether it held up
+
+## 32. Second model tried — Random Forest, compared against Logistic Regression
+
+- At 260 complete flights, trained a Random Forest classifier (100 trees, class_weight='balanced') on the identical train/test split and feature set as the Logistic Regression baseline, for a fair comparison
+- **Result:** virtually identical performance — precision 0.58, recall 0.88, F1 0.70, accuracy 0.88, nearly matching Logistic Regression at the same data size
+- **Interpretation:** Random Forest's ability to model non-linear feature interactions did not produce a meaningful improvement over the simpler linear model at this dataset size (~260 flights) — a normal, expected outcome in small-data settings
+- **Decision: kept Logistic Regression as the primary/reported model.** Given equal performance, the simpler, faster, more directly interpretable model (already cross-validated against EDA findings) is the better choice
+- **Interview point:** trying a more complex model and choosing not to adopt it, because it didn't outperform a simpler baseline, demonstrates disciplined model selection — added complexity should earn its place with genuine performance gains
+
+## 33. Departure delay vs arrival delay: how related are they?
+
+- Question worth answering directly rather than assuming: does a late departure actually predict a late arrival, or are they fairly independent?
+- Calculated the Pearson correlation between actual_dep_delay_min and actual_arr_delay_min for BOM-FRA: **r = 0.445**
+- **Interpretation:** a moderate, positive relationship, not a strong or near-perfect one. Departing late does somewhat associate with arriving late, but roughly half the variation in arrival delay isn't explained by departure delay at all, likely reflecting in-flight factors (headwinds, air traffic holding, rerouting) not captured in this dataset
+- **Why this matters for how findings are stated:** it would be inaccurate to claim late departures "cause" late arrivals based on this data alone. The precise claim is that the two are moderately correlated, not causally proven
+- **Interview point:** distinguishing correlation from causation, and stating a precise correlation coefficient rather than a vague "they're related" claim, shows real statistical precision
+
+## 34. Still to come (will update as we go)
+
+- Continue daily collection until API request budget (100/month) is used up
+- Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
+- Deduplicate historical flights using flight_number now that it's consistently captured
+- Consider expanding hour-of-day and day-of-week analysis to the other two routes, not just BOM-FRA
+- Finalize README and Streamlit app once data collection winds down
 
 ---
 
