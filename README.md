@@ -2,6 +2,8 @@
 
 Self-collected flight tracking and delay analysis for India-Europe air travel.
 
+**Live app:** [routewatch.streamlit.app](https://routewatch.streamlit.app) *(link goes live once deployed, replace with actual URL)*
+
 ## Why this project
 
 Most portfolio flight-delay projects use the same well-worn Kaggle dataset (US domestic flights, 2015). Free, ready-made international flight delay data doesn't really exist, so instead of downloading something, I built the dataset myself. A script pulls live flight status data daily from a real API, appending to a growing record over several weeks.
@@ -15,6 +17,7 @@ Europe has always been high on my personal travel bucket list, so the three rout
 - Investigates and documents real data quality issues found along the way
 - Analyzes delay patterns by route, airline, day of week, and departure hour
 - Trains and compares classification models to predict delay risk
+- Ships as a live, interactive app: pick a route, adjust the delay threshold, switch light/dark mode
 
 ## Data collection
 
@@ -66,7 +69,7 @@ Full reasoning for every decision in this project, including these findings, why
 
 ## Tech stack
 
-Python, pandas, scikit-learn, requests, python-dotenv, matplotlib/seaborn, Jupyter (via VS Code)
+Python, pandas, scikit-learn, requests, python-dotenv, matplotlib/seaborn, Plotly, Streamlit, Jupyter (via VS Code)
 
 ## Project structure
 
@@ -75,6 +78,7 @@ RouteWatch/
 ├── data/
 │   └── flights_log.csv       # growing dataset, appended to daily
 ├── collect_data.py           # daily data collection script
+├── app.py                    # live Streamlit app
 ├── explore.ipynb             # clean, organized analysis notebook
 ├── requirements.txt
 ├── KNOWLEDGE.md               # full reasoning log, every decision explained
@@ -98,6 +102,11 @@ Add a `.env` file:
 AVIATIONSTACK_KEY=your_key_here
 ```
 
+Run the app locally:
+```bash
+streamlit run app.py
+```
+
 ## Limitations
 
 - **Portfolio-scale dataset, not production-scale.** This was a deliberate tradeoff prioritizing depth of understanding over dataset size. Three routes were chosen specifically to keep per-route sample sizes meaningful within a free API tier's request limits.
@@ -109,8 +118,8 @@ AVIATIONSTACK_KEY=your_key_here
 
 - Expand to more routes with a paid API tier for higher-frequency, broader coverage
 - Collect across a full seasonal cycle to separate weather and seasonal effects from route-specific patterns
-- Add a simple interface (Streamlit) to check delay risk for a specific route and time before booking
 - Deduplicate historical flights using flight number now that it's consistently captured
+- Add a booking-style "check this specific flight" lookup instead of only route-level and hour-level views
 
 ---
 

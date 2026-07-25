@@ -263,6 +263,7 @@ div[data-baseweb="select"] > div {{
     margin-top: 40px;
     padding-top: 16px;
     border-top: 1px solid {T['footer_border']};
+    text-align: center;
 }}
 
 @media (max-width: 640px) {{
@@ -400,6 +401,9 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="rw-footer">Data collected daily via a live flight API. '
     'Delay defined as 15+ minutes late, the industry-standard threshold. '
-    'Full project reasoning in KNOWLEDGE.md.</div>',
+    'Full project reasoning in KNOWLEDGE.md.<br><br>'
+    'Built by Khushi Shukla &middot; '
+    '<a href="https://www.linkedin.com/in/kshukla1215/" target="_blank" style="color:inherit; text-decoration:underline;">LinkedIn</a>'
+    '</div>',
     unsafe_allow_html=True,
 )

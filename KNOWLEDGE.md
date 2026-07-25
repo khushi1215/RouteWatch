@@ -181,6 +181,7 @@
 | Day 14 | 247 | TBD | Re-evaluated model with more data, recall dropped from 1.00 to 0.88, precision from 0.73 to 0.58, confirming the Day 13 caution that the perfect score was a small-sample artifact |
 | Day 15 | 260 | 465 | Continued daily collection. Refactored and cleaned up the exploration notebook into a clear, organized 6-section structure. Trained and compared a Random Forest model against the Logistic Regression baseline, decided to keep the simpler model |
 | Day 16 | 282 | 497 | Continued daily collection |
+| Day 17 | 297 | 522 | Built and styled the Streamlit app (departure-board theme, light/dark toggle, adjustable delay threshold, mobile-responsive layout). Calculated departure-to-arrival delay correlation (r=0.445). Fixed several silently-failed KNOWLEDGE.md edits from earlier sessions and re-verified content |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
