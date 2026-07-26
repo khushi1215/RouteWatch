@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from sklearn.linear_model import LogisticRegression
 
 st.set_page_config(page_title="RouteWatch", page_icon="✈", layout="wide")
 
@@ -266,6 +267,37 @@ div[data-baseweb="select"] > div {{
     text-align: center;
 }}
 
+.rw-predict-result {{
+    text-align: center;
+    padding: 22px 16px;
+}}
+
+.rw-predict-pct {{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+}}
+
+.rw-predict-label {{
+    font-size: 13px;
+    color: {T['text_muted']};
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 8px;
+}}
+
+.rw-disclaimer {{
+    background: {T['legend_bg']};
+    border: 1px solid {T['legend_border']};
+    border-left: 3px solid {T['accent']};
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: {T['text_secondary']};
+    margin-top: 14px;
+}}
+
 @media (max-width: 640px) {{
     .block-container {{ padding-left: 1rem; padding-right: 1rem; padding-top: 1rem; }}
     .rw-route-card, .rw-metric-card, .rw-panel {{ padding: 14px 16px; }}
@@ -309,6 +341,7 @@ def load_data():
         complete['arr_actual'] - complete['arr_scheduled']
     ).dt.total_seconds() / 60
     complete['dep_hour'] = complete['dep_scheduled'].dt.hour
+    complete['day_of_week'] = complete['dep_scheduled'].dt.day_name()
     return complete
 
 
@@ -397,6 +430,76 @@ st.markdown('<div class="rw-panel">', unsafe_allow_html=True)
 st.markdown(f'<div style="font-size:14px; color:{T["text_secondary"]}; margin-bottom:4px;">Delay rate by departure hour: {selected_route}</div>', unsafe_allow_html=True)
 st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
 st.markdown('</div>', unsafe_allow_html=True)
+
+
+@st.cache_resource
+def train_model(_data, threshold):
+    d = _data.copy()
+    airline_counts = d['airline'].value_counts()
+    rare_airlines = airline_counts[airline_counts < 10].index
+    d['airline_grouped'] = d['airline'].apply(lambda x: 'Other' if x in rare_airlines else x)
+    d['is_weekend'] = d['dep_scheduled'].dt.dayofweek >= 5
+
+    feature_cols = ['route', 'airline_grouped', 'dep_hour', 'day_of_week', 'is_weekend']
+    X = pd.get_dummies(d[feature_cols], columns=['route', 'airline_grouped', 'day_of_week'])
+    y = d['is_delayed']
+
+    model = LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced')
+    model.fit(X, y)
+    return model, X.columns, rare_airlines
+
+
+model, model_columns, rare_airlines = train_model(data, threshold)
+
+st.markdown('<div class="rw-section-label">Predict my flight</div>', unsafe_allow_html=True)
+
+pred_col1, pred_col2, pred_col3 = st.columns(3)
+with pred_col1:
+    pred_route = st.selectbox("Route", routes, key="pred_route")
+with pred_col2:
+    airlines_on_route = sorted(data[data['route'] == pred_route]['airline'].unique())
+    pred_airline = st.selectbox("Airline", airlines_on_route, key="pred_airline")
+with pred_col3:
+    pred_day = st.selectbox("Day of week",
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], key="pred_day")
+
+pred_hour = st.slider("Departure hour", 0, 23, 8, key="pred_hour")
+
+if st.button("Predict delay risk", width='stretch'):
+    airline_input = "Other" if pred_airline in rare_airlines else pred_airline
+    is_weekend_input = pred_day in ["Saturday", "Sunday"]
+
+    input_row = pd.DataFrame([{
+        'route': pred_route,
+        'airline_grouped': airline_input,
+        'dep_hour': pred_hour,
+        'day_of_week': pred_day,
+        'is_weekend': is_weekend_input,
+    }])
+    input_encoded = pd.get_dummies(input_row, columns=['route', 'airline_grouped', 'day_of_week'])
+    input_encoded = input_encoded.reindex(columns=model_columns, fill_value=0)
+
+    probability = model.predict_proba(input_encoded)[0][1] * 100
+    result_color = T['bad'] if probability >= 30 else (T['accent'] if probability >= 15 else T['good'])
+
+    st.markdown(
+        f'<div class="rw-panel rw-predict-result">'
+        f'<div class="rw-predict-pct" style="color:{result_color};">{probability:.0f}%</div>'
+        f'<div class="rw-predict-label">estimated chance of arriving 15+ minutes late</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+st.markdown(
+    '<div class="rw-disclaimer">'
+    '<b>This is a directional estimate, not a guarantee.</b> The model is trained on a small, '
+    f'self-collected dataset ({len(data)} flights total) using only 4 factors: route, airline, day, and hour. '
+    'It does not account for weather, air traffic conditions, aircraft rotation delays, or other real-world '
+    'factors that actually affect whether a specific flight runs on time. Treat this as a historical pattern, '
+    'not a forecast. Full model evaluation and its limitations are documented in KNOWLEDGE.md.'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     '<div class="rw-footer">Data collected daily via a live flight API. '
