@@ -53,7 +53,9 @@ if "theme" not in st.session_state:
 
 col_a, col_b = st.columns([6, 1])
 with col_b:
-    is_dark = st.toggle("Dark mode", value=(st.session_state.theme == "dark"))
+    current_is_dark = st.session_state.theme == "dark"
+    toggle_label = "Dark mode" if current_is_dark else "Light mode"
+    is_dark = st.toggle(toggle_label, value=current_is_dark)
     st.session_state.theme = "dark" if is_dark else "light"
 
 T = THEMES[st.session_state.theme]
@@ -296,6 +298,20 @@ div[data-baseweb="select"] > div {{
     font-size: 12.5px;
     color: {T['text_secondary']};
     margin-top: 14px;
+}}
+
+div[data-testid="stToggle"] {{
+    background: {T['card_bg']};
+    border: 1px solid {T['card_border']};
+    border-radius: 999px;
+    padding: 8px 14px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}}
+
+div[data-testid="stToggle"] label p {{
+    color: {T['text']} !important;
+    font-size: 13px !important;
 }}
 
 @media (max-width: 640px) {{
