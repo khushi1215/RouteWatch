@@ -182,6 +182,7 @@
 | Day 15 | 260 | 465 | Continued daily collection. Refactored and cleaned up the exploration notebook into a clear, organized 6-section structure. Trained and compared a Random Forest model against the Logistic Regression baseline, decided to keep the simpler model |
 | Day 16 | 282 | 497 | Continued daily collection |
 | Day 17 | 297 | 522 | Built and styled the Streamlit app (departure-board theme, light/dark toggle, adjustable delay threshold, mobile-responsive layout). Calculated departure-to-arrival delay correlation (r=0.445). Fixed several silently-failed KNOWLEDGE.md edits from earlier sessions and re-verified content |
+| Day 18 | 318 | 549 | Published the app live on Streamlit Community Cloud. Fixed a deployment failure (pywinpty, a Windows-only package pulled in by pip freeze, cannot build on Linux) by trimming requirements.txt to actual runtime dependencies. Added a live "predict my flight" feature backed by the same trained model, with a visible disclaimer about the small dataset and limited features. Fixed light-mode contrast and mislabeling bugs on the theme toggle |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
