@@ -107,6 +107,18 @@ Run the app locally:
 streamlit run app.py
 ```
 
+## Deployment
+
+The live app is deployed on Streamlit Community Cloud, free, and auto-redeploys on every push to main.
+
+To deploy your own copy:
+1. Fork or clone this repo to your own GitHub account
+2. Go to share.streamlit.io and sign in with GitHub
+3. Click New app, select the repo, branch main, main file path app.py
+4. Click Deploy
+
+One thing to watch for: requirements.txt should only list what app.py and collect_data.py actually need (streamlit, pandas, plotly, requests, python-dotenv, scikit-learn). Running pip freeze on a local Windows machine can pull in OS-specific packages like pywinpty that fail to build on Streamlit Cloud's Linux environment. Keep the deployed requirements file trimmed to actual dependencies, not a full local environment dump.
+
 ## Limitations
 
 - **Portfolio-scale dataset, not production-scale.** This was a deliberate tradeoff prioritizing depth of understanding over dataset size. Three routes were chosen specifically to keep per-route sample sizes meaningful within a free API tier's request limits.
