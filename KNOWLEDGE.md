@@ -183,6 +183,9 @@
 | Day 16 | 282 | 497 | Continued daily collection |
 | Day 17 | 297 | 522 | Built and styled the Streamlit app (departure-board theme, light/dark toggle, adjustable delay threshold, mobile-responsive layout). Calculated departure-to-arrival delay correlation (r=0.445). Fixed several silently-failed KNOWLEDGE.md edits from earlier sessions and re-verified content |
 | Day 18 | 318 | 549 | Published the app live on Streamlit Community Cloud. Fixed a deployment failure (pywinpty, a Windows-only package pulled in by pip freeze, cannot build on Linux) by trimming requirements.txt to actual runtime dependencies. Added a live "predict my flight" feature backed by the same trained model, with a visible disclaimer about the small dataset and limited features. Fixed light-mode contrast and mislabeling bugs on the theme toggle |
+| Day 19 | Not recorded | Not recorded | Continued daily collection, shape numbers not logged this day |
+| Day 20 | 350 | 603 | Continued daily collection. Pulled current model and EDA numbers for resume use (delay rate by route: BOM-FRA 33.1%, BLR-AMS 0%, DEL-CDG 5.8% at 339 flights, recall on delayed class 90% with Logistic Regression) |
+| Day 21 | 369 | 634 | Continued daily collection |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
@@ -273,13 +276,23 @@
 - **Why this matters for how findings are stated:** it would be inaccurate to claim late departures "cause" late arrivals based on this data alone. The precise claim is that the two are moderately correlated, not causally proven
 - **Interview point:** distinguishing correlation from causation, and stating a precise correlation coefficient rather than a vague "they're related" claim, shows real statistical precision
 
-## 34. Still to come (will update as we go)
+## 34. Market research: RouteWatch against current Data Scientist job demand
+
+- Researched current (2026) skill demand for Data Scientist, Data Analyst, and GenAI/AI Engineer roles across job postings and industry reports, to guide what future projects should target rather than picking randomly
+- Key market findings worth recording: Python appears in 57% of Data Scientist postings, Machine Learning in 69%, SQL in 30%. NLP demand nearly quadrupled from 5% to 19% of postings in a year. 57% of postings now want versatile, cross-domain candidates rather than narrow specialists
+- **Checked RouteWatch against this list directly.** Confirmed strengths: Python throughout, real trained and evaluated ML models (Logistic Regression, Random Forest), scikit-learn, statistics and probability reasoning (correlation, class imbalance, sample-size discipline), genuine deployment (live Streamlit app with a working prediction feature), strong documentation and communication
+- **Confirmed real gaps, not filled by this project:** no SQL anywhere (data lives in CSV, never touched a database), no cloud platform used (Streamlit Community Cloud is not the same as AWS/Azure/GCP), no NLP/LLM component at all
+- **Decision:** rather than trying to retrofit these gaps into RouteWatch, treat them as deliberate targets for future projects. Plan is to build 2-3 projects per role (Data Scientist, Data Analyst, GenAI/AI Engineer) over time, with each new project in a domain chosen specifically to cover a gap left by the previous one in that same domain
+- **Interview point:** being able to say "I researched current market demand, audited my own project against it, and used the gaps to plan my next project" is a stronger, more deliberate portfolio story than building projects one at a time without a clear throughline connecting them
+
+## 35. Still to come (will update as we go)
 
 - Continue daily collection until API request budget (100/month) is used up
 - Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
 - Deduplicate historical flights using flight_number now that it's consistently captured
 - Consider expanding hour-of-day and day-of-week analysis to the other two routes, not just BOM-FRA
 - Finalize README and Streamlit app once data collection winds down
+- Future Data Scientist project #2 (separate chat/project) should target SQL, a cloud platform, and an NLP/LLM component, the three gaps identified in Section 34
 
 ---
 
