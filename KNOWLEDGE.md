@@ -186,6 +186,7 @@
 | Day 19 | Not recorded | Not recorded | Continued daily collection, shape numbers not logged this day |
 | Day 20 | 350 | 603 | Continued daily collection. Pulled current model and EDA numbers for resume use (delay rate by route: BOM-FRA 33.1%, BLR-AMS 0%, DEL-CDG 5.8% at 339 flights, recall on delayed class 90% with Logistic Regression) |
 | Day 21 | 369 | 634 | Continued daily collection |
+| Day 22 | 391 | 667 | Continued daily collection |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
