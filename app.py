@@ -314,6 +314,37 @@ div[data-testid="stToggle"] label p {{
     font-size: 13px !important;
 }}
 
+label, [data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] label {{
+    color: {T['text']} !important;
+}}
+
+.stSlider [data-testid="stTickBarMin"], .stSlider [data-testid="stTickBarMax"] {{
+    color: {T['text_muted']} !important;
+}}
+
+.stSlider [data-testid="stThumbValue"] {{
+    color: {T['accent']} !important;
+    background: transparent !important;
+}}
+
+div[data-baseweb="select"] * {{
+    color: {T['text']} !important;
+}}
+
+.stButton button {{
+    background: {T['card_bg']} !important;
+    color: {T['text']} !important;
+    border: 1px solid {T['card_border']} !important;
+}}
+
+.stButton button p {{
+    color: {T['text']} !important;
+}}
+
+[data-testid="stMarkdownContainer"] p {{
+    color: inherit;
+}}
+
 @media (max-width: 640px) {{
     .block-container {{ padding-left: 1rem; padding-right: 1rem; padding-top: 1rem; }}
     .rw-route-card, .rw-metric-card, .rw-panel {{ padding: 14px 16px; }}
@@ -338,7 +369,7 @@ st.markdown(
     '<div class="rw-legend">'
     f'<div class="rw-legend-item"><span class="rw-legend-dot" style="background:{T["good"]}; box-shadow:0 0 6px {T["good"]};"></span>Below the delay threshold, more reliable</div>'
     f'<div class="rw-legend-item"><span class="rw-legend-dot" style="background:{T["bad"]}; box-shadow:0 0 6px {T["bad"]};"></span>At or above 10% delayed, less reliable</div>'
-    f'<div class="rw-legend-item"><span style="font-family:JetBrains Mono; color:{T["accent"]};">n:</span> number of flights that data point is based on</div>'
+    f'<div class="rw-legend-item"><span style="font-family:JetBrains Mono; color:{T["accent"]};">n</span> = number of flights that data point is based on</div>'
     '</div>',
     unsafe_allow_html=True,
 )
