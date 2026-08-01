@@ -53,10 +53,14 @@ if "theme" not in st.session_state:
 
 col_a, col_b = st.columns([6, 1])
 with col_b:
-    current_is_dark = st.session_state.theme == "dark"
-    toggle_label = "Dark mode" if current_is_dark else "Light mode"
-    is_dark = st.toggle(toggle_label, value=current_is_dark)
+    is_dark = st.toggle(
+        "Theme toggle",
+        value=(st.session_state.theme == "dark"),
+        label_visibility="collapsed",
+    )
     st.session_state.theme = "dark" if is_dark else "light"
+    mode_text = "Dark mode" if is_dark else "Light mode"
+    st.caption(mode_text)
 
 T = THEMES[st.session_state.theme]
 

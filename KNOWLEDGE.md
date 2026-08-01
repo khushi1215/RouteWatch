@@ -187,6 +187,7 @@
 | Day 20 | 350 | 603 | Continued daily collection. Pulled current model and EDA numbers for resume use (delay rate by route: BOM-FRA 33.1%, BLR-AMS 0%, DEL-CDG 5.8% at 339 flights, recall on delayed class 90% with Logistic Regression) |
 | Day 21 | 369 | 634 | Continued daily collection |
 | Day 22 | 391 | 667 | Continued daily collection |
+| Day 23 | 414 | 697 | Continued daily collection. Added a live "predict my flight" feature to the app, backed by a model retrained inside the app itself (cached, retrains only when data changes). Fixed two theme bugs: the toggle label was showing the wrong mode name, and light mode had several invisible text elements because Streamlit's own native widget labels (dropdowns, sliders, buttons) are separate from the app's custom CSS classes and were not being overridden |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
@@ -286,7 +287,22 @@
 - **Decision:** rather than trying to retrofit these gaps into RouteWatch, treat them as deliberate targets for future projects. Plan is to build 2-3 projects per role (Data Scientist, Data Analyst, GenAI/AI Engineer) over time, with each new project in a domain chosen specifically to cover a gap left by the previous one in that same domain
 - **Interview point:** being able to say "I researched current market demand, audited my own project against it, and used the gaps to plan my next project" is a stronger, more deliberate portfolio story than building projects one at a time without a clear throughline connecting them
 
-## 35. Still to come (will update as we go)
+## 35. Closing the gap between a trained model and an actually usable app
+
+- Realized the deployed app only showed historical, descriptive statistics (delay rate by route, by hour) and never let anyone actually use the trained model to get a prediction for a hypothetical future flight. The model existed, got evaluated, and then sat unused.
+- **Added a "predict my flight" feature:** pick a route, airline, day of week, and departure hour, get the model's live predicted probability of delay
+- **Model is retrained inside the app itself** (using the same feature engineering and Logistic Regression setup as the notebook), cached so it only retrains when the underlying data actually changes, not on every click
+- **A visible, un-hideable disclaimer sits next to the prediction**, stating plainly that this is a small self-collected dataset with only 4 factors, does not account for weather, air traffic, or aircraft rotation delays, and should be read as a historical pattern, not a forecast
+- **Why add a caveated prediction rather than either hiding the model or presenting it overconfidently:** real production delay-prediction systems also aren't perfect even with far more data and features. The honest move is not to avoid exposing a limited model, it is to be explicit about exactly how limited it is, the same principle applied throughout this project's other findings
+
+## 36. Two theme bugs found while testing light mode
+
+- **Bug 1: toggle label showed the wrong mode name.** An earlier version had a static label ("Dark mode") regardless of which theme was actually active. Fixed by making the label read the current session state and display the mode that is actually showing.
+- **Bug 2: several text elements were invisible in light mode.** Streamlit renders its own native widget labels (selectbox labels, slider tick values, button text) using its own internal styling, completely separate from this app's custom CSS classes. These were never overridden, so they kept a color suited to the dark theme and disappeared against the light background.
+- **Fix:** added explicit CSS overrides targeting Streamlit's own internal widget selectors (label text, slider value display, select box text, button text) so they follow the same theme colors as the rest of the app, in both modes
+- **Interview point:** a real, sometimes-overlooked lesson when styling apps built on top of a framework like Streamlit: the framework's own default component chrome does not automatically inherit a custom theme just because most of the page has been restyled. Every native component needs to be checked and, if needed, explicitly overridden.
+
+## 37. Still to come (will update as we go)
 
 - Continue daily collection until API request budget (100/month) is used up
 - Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
