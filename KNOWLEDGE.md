@@ -188,6 +188,7 @@
 | Day 21 | 369 | 634 | Continued daily collection |
 | Day 22 | 391 | 667 | Continued daily collection |
 | Day 23 | 414 | 697 | Continued daily collection. Added a live "predict my flight" feature to the app, backed by a model retrained inside the app itself (cached, retrains only when data changes). Fixed two theme bugs: the toggle label was showing the wrong mode name, and light mode had several invisible text elements because Streamlit's own native widget labels (dropdowns, sliders, buttons) are separate from the app's custom CSS classes and were not being overridden |
+| Day 24 | 425 | 722 | Continued daily collection. Diagnosed and fixed the actual root cause of the toggle label bug, a one-render lag where the label text was computed before capturing the toggle's new value each click. Decoupled the mode indicator text from the widget's own label to fix it properly |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
