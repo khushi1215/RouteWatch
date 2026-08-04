@@ -23,6 +23,14 @@ Europe has always been high on my personal travel bucket list, so the three rout
 
 `collect_data.py` calls the [Aviationstack](https://aviationstack.com) API once daily for each route and appends the results to `data/flights_log.csv`. Run it once a day and the dataset grows.
 
+The script only fetches live, current flight data on each run, it cannot backfill historical data. The full historical dataset from every route ever tracked is already included in `data/flights_log.csv` in this repo, cloning the repo gives you all of it immediately.
+
+Data was collected in two phases, both fully preserved in the same file:
+- Phase 1 (Day 1-25): Mumbai-Frankfurt, Delhi-Paris, Bengaluru-Amsterdam
+- Phase 2 (Day 26 onward): Delhi-London, Bengaluru-Frankfurt, Mumbai-Amsterdam, switched to a fresh set of routes on a new API quota cycle rather than diluting sample depth by running 6 routes at once. Reasoning documented in KNOWLEDGE.md.
+
+The active `ROUTES` list in `collect_data.py` only reflects whichever phase is currently running, since that's what determines what new rows get added going forward.
+
 ```bash
 python collect_data.py
 ```

@@ -9,10 +9,24 @@ load_dotenv()
 API_KEY = os.getenv('AVIATIONSTACK_KEY')
 
 # The 3 routes it will be tracking: (departure airport, arrival airport)
-ROUTES = [
+# Phase 1 (Day 1-25): tracked these 3 routes to build a first, comparably-deep
+# dataset (400+ flights each). Historical data remains in flights_log.csv untouched.
+# See KNOWLEDGE.md Section 38 for the Phase 2 transition reasoning.
+PHASE_1_ROUTES_COMPLETE = [
     ('BOM', 'FRA'),
     ('DEL', 'CDG'),
     ('BLR', 'AMS')
+]
+
+# Phase 2 (Day 26 onward): new API quota cycle, switched to these 3 routes
+# rather than running all 6 at once, to avoid halving per-route sample depth.
+# Selected from a researched top-10 list of busiest/most-searched India-Europe
+# routes, picked specifically to add a new destination country (UK, Netherlands)
+# and enable same-destination cross-city comparisons (Frankfurt via BLR vs BOM).
+ROUTES = [
+    ('DEL', 'LHR'),
+    ('BLR', 'FRA'),
+    ('BOM', 'AMS')
 ]
 
 CSV_FILE = 'data/flights_log.csv'

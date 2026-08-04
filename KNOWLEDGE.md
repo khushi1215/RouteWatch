@@ -189,6 +189,7 @@
 | Day 22 | 391 | 667 | Continued daily collection |
 | Day 23 | 414 | 697 | Continued daily collection. Added a live "predict my flight" feature to the app, backed by a model retrained inside the app itself (cached, retrains only when data changes). Fixed two theme bugs: the toggle label was showing the wrong mode name, and light mode had several invisible text elements because Streamlit's own native widget labels (dropdowns, sliders, buttons) are separate from the app's custom CSS classes and were not being overridden |
 | Day 24 | 425 | 722 | Continued daily collection. Diagnosed and fixed the actual root cause of the toggle label bug, a one-render lag where the label text was computed before capturing the toggle's new value each click. Decoupled the mode indicator text from the widget's own label to fix it properly |
+| Day 25 | 442 | 749 | Continued daily collection. Marked project version 1 complete, remaining sessions are data collection only until the API budget runs out |
 
 ## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
 
@@ -303,7 +304,16 @@
 - **Fix:** added explicit CSS overrides targeting Streamlit's own internal widget selectors (label text, slider value display, select box text, button text) so they follow the same theme colors as the rest of the app, in both modes
 - **Interview point:** a real, sometimes-overlooked lesson when styling apps built on top of a framework like Streamlit: the framework's own default component chrome does not automatically inherit a custom theme just because most of the page has been restyled. Every native component needs to be checked and, if needed, explicitly overridden.
 
-## 37. Still to come (will update as we go)
+## 37. Phase 2: switching to 3 new routes on a fresh API quota cycle
+
+- The Aviationstack free tier resets its 100-request budget monthly. With Phase 1 routes (BOM-FRA, DEL-CDG, BLR-AMS) reaching a solid final sample size (442+ flights) on the prior cycle, a fresh 100-request budget became available for a new month
+- **Considered running all 6 routes together, rejected it.** At 6 routes per day, the ~100-request budget only covers 16-17 days, meaning the new 3 routes would end up with roughly 50 flights each versus 400+ on the original 3, a nearly 9x sample size gap. This would directly contradict the depth-over-breadth reasoning already documented in Section 7, and would make any cross-comparison between old and new routes unreliable due to the sample size mismatch alone, not a real difference
+- **Decision: stop collecting Phase 1 routes, start collecting 3 new routes instead**, giving the new routes a comparable ~33-day window and comparable depth, rather than diluting everything by running 6 at once
+- **Historical Phase 1 data is not deleted or hidden.** It remains permanently in flights_log.csv, and the switch is documented directly in code comments in collect_data.py, so anyone reading the script (not just this doc) understands why the active route list changed without needing to dig through git history
+- **New routes chosen from researched top-10 India-Europe route list**, picked specifically to add value beyond just "more data": Delhi-London (DEL-LHR, the single busiest India-Europe corridor overall, adds a new destination country), Mumbai-Amsterdam (BOM-AMS, adds the Netherlands, distinct from the existing Frankfurt/Paris coverage), and Bengaluru-Frankfurt (BLR-FRA, same destination as the existing BOM-FRA route but a different Indian origin city, enabling a same-destination cross-city comparison)
+- **Interview point:** treating "we have more API budget" as a reason to research and deliberately choose new coverage, rather than just re-running the same routes or diluting sample depth by adding routes carelessly, keeps the project's stated principles consistent across its full timeline instead of quietly abandoning them partway through
+
+## 38. Still to come (will update as we go)
 
 - Continue daily collection until API request budget (100/month) is used up
 - Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
