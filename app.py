@@ -394,7 +394,7 @@ st.markdown(
     '<div class="rw-legend">'
     f'<div class="rw-legend-item"><span class="rw-legend-dot" style="background:{T["good"]}; box-shadow:0 0 6px {T["good"]};"></span>Below the delay threshold, more reliable</div>'
     f'<div class="rw-legend-item"><span class="rw-legend-dot" style="background:{T["bad"]}; box-shadow:0 0 6px {T["bad"]};"></span>At or above 10% delayed, less reliable</div>'
-    f'<div class="rw-legend-item"><span style="font-family:JetBrains Mono; color:{T["accent"]};">n</span> = number of flights that data point is based on</div>'
+    f'<div class="rw-legend-item"><span style="font-family:JetBrains Mono; color:{T["accent"]};">n:</span>number of flights that data point is based on</div>'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -516,7 +516,7 @@ with pred_col3:
 
 pred_hour = st.slider("Departure hour", 0, 23, 8, key="pred_hour")
 
-if st.button("Predict delay risk", width='stretch'):
+if st.button("Predict delay risk", use_container_width=True):
     airline_input = "Other" if pred_airline in rare_airlines else pred_airline
     is_weekend_input = pred_day in ["Saturday", "Sunday"]
 
