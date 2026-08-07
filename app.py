@@ -25,6 +25,7 @@ THEMES = {
         "chart_text": "#EDEBE3",
         "chart_axis": "#8A94A6",
         "chart_grid": "rgba(255,255,255,0.06)",
+        "hover_bg": "#131C2E",
     },
     "light": {
         "bg": "radial-gradient(circle at 15% 0%, #FDF6E9 0%, #F4EFE4 55%, #EFEAE0 100%)",
@@ -45,6 +46,7 @@ THEMES = {
         "chart_text": "#231F14",
         "chart_axis": "#665F4F",
         "chart_grid": "rgba(35,31,20,0.08)",
+        "hover_bg": "#FFFFFF",
     },
 }
 
@@ -349,6 +351,10 @@ div[data-baseweb="select"] * {{
     color: inherit;
 }}
 
+.js-plotly-plot .plotly text {{
+    fill: {T['chart_axis']} !important;
+}}
+
 @media (max-width: 640px) {{
     .block-container {{ padding-left: 1rem; padding-right: 1rem; padding-top: 1rem; }}
     .rw-route-card, .rw-metric-card, .rw-panel {{ padding: 14px 16px; }}
@@ -464,6 +470,7 @@ fig = go.Figure(data=[
         textposition='outside',
         textfont=dict(family='JetBrains Mono', color=T['chart_text'], size=12),
         marker_line_width=0,
+        hovertemplate='%{x}: %{y:.0f}%<extra></extra>',
     )
 ])
 fig.update_layout(
@@ -472,9 +479,22 @@ fig.update_layout(
     font=dict(family='Inter', color=T['chart_axis'], size=12),
     margin=dict(l=10, r=10, t=30, b=10),
     height=300,
-    xaxis=dict(showgrid=False, tickfont=dict(family='JetBrains Mono')),
-    yaxis=dict(gridcolor=T['chart_grid'], ticksuffix='%', zeroline=False),
+    xaxis=dict(
+        showgrid=False,
+        tickfont=dict(family='JetBrains Mono', color=T['chart_axis'], size=12),
+    ),
+    yaxis=dict(
+        gridcolor=T['chart_grid'],
+        ticksuffix='%',
+        zeroline=False,
+        tickfont=dict(color=T['chart_axis'], size=12),
+    ),
     showlegend=False,
+    hoverlabel=dict(
+        bgcolor=T['hover_bg'],
+        font=dict(color=T['chart_text'], family='Inter', size=12),
+        bordercolor=T['card_border'],
+    ),
 )
 
 st.markdown('<div class="rw-panel">', unsafe_allow_html=True)
@@ -516,7 +536,7 @@ with pred_col3:
 
 pred_hour = st.slider("Departure hour", 0, 23, 8, key="pred_hour")
 
-if st.button("Predict delay risk", use_container_width=True):
+if st.button("Predict delay risk", width='stretch'):
     airline_input = "Other" if pred_airline in rare_airlines else pred_airline
     is_weekend_input = pred_day in ["Saturday", "Sunday"]
 
