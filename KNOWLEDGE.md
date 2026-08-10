@@ -18,7 +18,7 @@
 
 - Real problem, not academic toy, airlines/travelers genuinely care
 - Rich feature set (airline, route, time, season), enough depth without needing deep learning
-- I already have aviation domain interest/knowledge from a prior project idea (Aviora)
+- Aviation is a domain I already have genuine interest and some background knowledge in
 
 ## 4. Why NOT the common Kaggle 2015 US flight delay dataset?
 
@@ -77,7 +77,7 @@
 
 ## 11. Why is the API key in .env, not hardcoded?
 
-- Same lesson as a security fix made on another portfolio project (E-Library): hardcoded secrets in code pushed to GitHub = publicly exposed, exploitable
+- Hardcoded secrets in code pushed to GitHub are publicly exposed and exploitable, a well known security mistake worth avoiding from the start
 - .env keeps the key out of code. .gitignore ensures .env is never pushed
 - Reusable interview point: "I follow the practice of never committing secrets to version control"
 
@@ -163,6 +163,8 @@
  - flight_number: genuinely cannot be backfilled, the API wasn't asked to return it for older snapshots, and that information is permanently lost for those rows. **Accepted limitation:** rows collected before Day 4 remain usable for route/airline/time-based aggregate analysis, but excluded from any analysis requiring per-flight identity (e.g. tracking one specific flight's full history)
 
 ## 23. Progress log
+
+This table tracks the detailed, day-by-day build-out of Phase 1 (Days 1-25), when the project was actively being built, debugged, and analyzed. From Phase 2 onward (Section 37), routine daily data collection is no longer logged row by row here, only genuinely new decisions, bugs, or findings get an entry, to keep this document focused on reasoning rather than a repetitive activity log. See Section 37 for that policy.
 
 | Date | Landed/Complete flights | Total rows | Key event |
 |---|---|---|---|
@@ -261,7 +263,7 @@
 
 - At 247 complete flights, re-ran the exact same balanced Logistic Regression pipeline
 - **Result:** recall on delayed class dropped from the earlier 1.00 to 0.88 (7/8 caught), precision dropped from 0.73 to 0.58 (5 false alarms, up from 3), overall accuracy dropped from 0.94 to 0.88
-- **This directly confirms the caution flagged in Section 31:** the earlier perfect recall was, as suspected, partly a small-test-set artifact. Performance settled to a more realistic, still genuinely solid level (0.88 recall) rather than the possibly-lucky perfect score seen before
+- **This directly confirms the caution flagged in Section 30:** the earlier perfect recall was, as suspected, partly a small-test-set artifact. Performance settled to a more realistic, still genuinely solid level (0.88 recall) rather than the possibly-lucky perfect score seen before
 - **Interview point:** being able to say "I predicted this result would soften with more data, and it did" is a stronger story than either reporting the perfect score without caveats, or never checking whether it held up
 
 ## 32. Second model tried: Random Forest compared against Logistic Regression
@@ -280,16 +282,7 @@
 - **Why this matters for how findings are stated:** it would be inaccurate to claim late departures "cause" late arrivals based on this data alone. The precise claim is that the two are moderately correlated, not causally proven
 - **Interview point:** distinguishing correlation from causation, and stating a precise correlation coefficient rather than a vague "they're related" claim, shows real statistical precision
 
-## 34. Market research: RouteWatch against current Data Scientist job demand
-
-- Researched current (2026) skill demand for Data Scientist, Data Analyst, and GenAI/AI Engineer roles across job postings and industry reports, to guide what future projects should target rather than picking randomly
-- Key market findings worth recording: Python appears in 57% of Data Scientist postings, Machine Learning in 69%, SQL in 30%. NLP demand nearly quadrupled from 5% to 19% of postings in a year. 57% of postings now want versatile, cross-domain candidates rather than narrow specialists
-- **Checked RouteWatch against this list directly.** Confirmed strengths: Python throughout, real trained and evaluated ML models (Logistic Regression, Random Forest), scikit-learn, statistics and probability reasoning (correlation, class imbalance, sample-size discipline), genuine deployment (live Streamlit app with a working prediction feature), strong documentation and communication
-- **Confirmed real gaps, not filled by this project:** no SQL anywhere (data lives in CSV, never touched a database), no cloud platform used (Streamlit Community Cloud is not the same as AWS/Azure/GCP), no NLP/LLM component at all
-- **Decision:** rather than trying to retrofit these gaps into RouteWatch, treat them as deliberate targets for future projects. Plan is to build 2-3 projects per role (Data Scientist, Data Analyst, GenAI/AI Engineer) over time, with each new project in a domain chosen specifically to cover a gap left by the previous one in that same domain
-- **Interview point:** being able to say "I researched current market demand, audited my own project against it, and used the gaps to plan my next project" is a stronger, more deliberate portfolio story than building projects one at a time without a clear throughline connecting them
-
-## 35. Closing the gap between a trained model and an actually usable app
+## 34. Closing the gap between a trained model and an actually usable app
 
 - Realized the deployed app only showed historical, descriptive statistics (delay rate by route, by hour) and never let anyone actually use the trained model to get a prediction for a hypothetical future flight. The model existed, got evaluated, and then sat unused.
 - **Added a "predict my flight" feature:** pick a route, airline, day of week, and departure hour, get the model's live predicted probability of delay
@@ -297,14 +290,15 @@
 - **A visible, un-hideable disclaimer sits next to the prediction**, stating plainly that this is a small self-collected dataset with only 4 factors, does not account for weather, air traffic, or aircraft rotation delays, and should be read as a historical pattern, not a forecast
 - **Why add a caveated prediction rather than either hiding the model or presenting it overconfidently:** real production delay-prediction systems also aren't perfect even with far more data and features. The honest move is not to avoid exposing a limited model, it is to be explicit about exactly how limited it is, the same principle applied throughout this project's other findings
 
-## 36. Two theme bugs found while testing light mode
+## 35. Two theme bugs found while testing light mode
 
 - **Bug 1: toggle label showed the wrong mode name.** An earlier version had a static label ("Dark mode") regardless of which theme was actually active. Fixed by making the label read the current session state and display the mode that is actually showing.
 - **Bug 2: several text elements were invisible in light mode.** Streamlit renders its own native widget labels (selectbox labels, slider tick values, button text) using its own internal styling, completely separate from this app's custom CSS classes. These were never overridden, so they kept a color suited to the dark theme and disappeared against the light background.
 - **Fix:** added explicit CSS overrides targeting Streamlit's own internal widget selectors (label text, slider value display, select box text, button text) so they follow the same theme colors as the rest of the app, in both modes
-- **Interview point:** a real, sometimes-overlooked lesson when styling apps built on top of a framework like Streamlit: the framework's own default component chrome does not automatically inherit a custom theme just because most of the page has been restyled. Every native component needs to be checked and, if needed, explicitly overridden.
+- **Follow-up fix:** the Plotly chart's own axis tick labels and hover tooltips were a separate, third gap, since Plotly renders its own text independent of both Streamlit's chrome and this app's custom CSS. The bar-label text was already theme-aware, but the axis tick font only specified font family, not color, so it fell back to Plotly's own default instead of following the theme. Hover tooltips had no theme styling at all. Fixed by explicitly setting tickfont color on both axes and adding a hoverlabel configuration tied to the theme, plus a CSS fallback (`.js-plotly-plot .plotly text`) targeting Plotly's rendered SVG text directly as a safety net.
+- **Interview point:** a real, sometimes-overlooked lesson when styling apps built on top of a framework like Streamlit, and further on top of a charting library like Plotly: each layer has its own default styling system, completely separate from the others. A custom theme needs to be applied at every layer individually, the page CSS, the framework's native widgets, and the charting library's own rendering, since none of them automatically inherit from the others.
 
-## 37. Phase 2: switching to 3 new routes on a fresh API quota cycle
+## 36. Phase 2: switching to 3 new routes on a fresh API quota cycle
 
 - The Aviationstack free tier resets its 100-request budget monthly. With Phase 1 routes (BOM-FRA, DEL-CDG, BLR-AMS) reaching a solid final sample size (442+ flights) on the prior cycle, a fresh 100-request budget became available for a new month
 - **Considered running all 6 routes together, rejected it.** At 6 routes per day, the ~100-request budget only covers 16-17 days, meaning the new 3 routes would end up with roughly 50 flights each versus 400+ on the original 3, a nearly 9x sample size gap. This would directly contradict the depth-over-breadth reasoning already documented in Section 7, and would make any cross-comparison between old and new routes unreliable due to the sample size mismatch alone, not a real difference
@@ -312,16 +306,15 @@
 - **Historical Phase 1 data is not deleted or hidden.** It remains permanently in flights_log.csv, and the switch is documented directly in code comments in collect_data.py, so anyone reading the script (not just this doc) understands why the active route list changed without needing to dig through git history
 - **New routes chosen from researched top-10 India-Europe route list**, picked specifically to add value beyond just "more data": Delhi-London (DEL-LHR, the single busiest India-Europe corridor overall, adds a new destination country), Mumbai-Amsterdam (BOM-AMS, adds the Netherlands, distinct from the existing Frankfurt/Paris coverage), and Bengaluru-Frankfurt (BLR-FRA, same destination as the existing BOM-FRA route but a different Indian origin city, enabling a same-destination cross-city comparison)
 - **Interview point:** treating "we have more API budget" as a reason to research and deliberately choose new coverage, rather than just re-running the same routes or diluting sample depth by adding routes carelessly, keeps the project's stated principles consistent across its full timeline instead of quietly abandoning them partway through
+- **Logging policy from this point forward:** daily data collection for the Phase 2 routes is not individually logged in the Section 23 progress table going forward, since a repeated "continued daily collection" row for every single day adds volume without adding reasoning, and this document's purpose is to capture decisions and findings, not serve as an activity log. Data collection continues daily, the same way it did for Phase 1, using the same script and process already documented above. Only genuinely new events, a bug, a finding, a design decision, get their own entry, the same standard already applied throughout this document.
 
-## 38. Still to come (will update as we go)
+## 37. Still to come (will update as we go)
 
-- Continue daily collection until API request budget (100/month) is used up
+- Continue daily collection on Phase 2 routes until API request budget (100/month) is used up
 - Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
 - Deduplicate historical flights using flight_number now that it's consistently captured
-- Consider expanding hour-of-day and day-of-week analysis to the other two routes, not just BOM-FRA
-- Finalize README and Streamlit app once data collection winds down
-- Future Data Scientist project #2 (separate chat/project) should target SQL, a cloud platform, and an NLP/LLM component, the three gaps identified in Section 34
+- Run the full EDA and modeling pipeline on Phase 2 routes once they reach a comparable sample size to Phase 1
 
 ---
 
-*Next update: after next data collection + analysis.*
+*Next update: after the next genuinely new decision, bug, or finding, not routine data collection.*
