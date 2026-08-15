@@ -1,320 +1,243 @@
-# RouteWatch: Complete Project Knowledge Doc
+# RouteWatch: Knowledge Doc
+
+A living decision record. Written as decisions get made, not reconstructed afterward. Every entry includes what was rejected and why, not just what won.
 
 ---
 
-## 1. What is this project?
+## 1. Project Definition
 
-- A self-collected flight tracking + delay analysis tool for India–Europe routes
-- Tracks real, live flight data daily via API, builds own dataset over weeks
-- Goal: understand and (eventually) predict delay risk on specific routes
+RouteWatch is a flight delay tracking and prediction tool for India-Europe air travel. A daily script collects live flight status data from a real API for a set of routes, builds a growing dataset over time, investigates and documents data quality problems as they surface, analyzes delay patterns, trains a model to estimate delay risk, and serves everything through a live, interactive web app.
 
-## 2. Why does this project exist?
-
-- Needed a genuine Data Science portfolio project
-- Didn't want a generic/copied project (Titanic, churn prediction, common Kaggle flight-delay clones)
-- Europe has always been high on my travel bucket list, wanted a project rooted in genuine personal curiosity, not an assigned topic
-
-## 3. Why flight delay prediction specifically?
-
-- Real problem, not academic toy, airlines/travelers genuinely care
-- Rich feature set (airline, route, time, season), enough depth without needing deep learning
-- Aviation is a domain I already have genuine interest and some background knowledge in
-
-## 4. Why NOT the common Kaggle 2015 US flight delay dataset?
-
-- Checked: it's overused, many near-identical student/portfolio repos use it
-- Using it would make this project indistinguishable from dozens of others
-- Free, ready-made *international* flight delay data doesn't exist (only US mandates public delay reporting)
-- **Decision: self-collect data instead**, nobody else has this exact dataset
-
-## 5. Why self-collected data instead of any downloadable dataset?
-
-- Originality, this data doesn't exist pre-made for these specific routes
-- Learn the *full* pipeline, real jobs involve messy live data, not clean CSVs
-- Genuine story of persistence/initiative, valuable given no work experience yet
-
-## 6. Project name: "RouteWatch"
-
-- Simple, professional, describes function (watching specific routes over time)
-
-## 7. Why these 3 specific routes?
-
-**Routes chosen: BOM→FRA, DEL→CDG, BLR→AMS**
-
-- Comparison value: 3 different European hubs (Germany/France/Netherlands), richer analysis than a single-country focus
-- 3 different Indian metro cities, avoids one city's local quirks skewing results
-- Reflects genuine interest in exploring different parts of Europe, not just one destination
-- **Why only 3, not 10-15:**
- - Free API tier = 100 requests/month. 3 routes x daily = ~90/month, fits budget
- - 10+ routes would mean either paid plan or less-frequent checks (worse data quality)
- - Depth over breadth: 3 routes → ~30-50 landed flights each (usable). 15 routes → ~7-10 each (too few to conclude anything)
- - Deliberate portfolio scope: prioritizes finishing + understanding deeply over maximum coverage
-
-## 8. Data source: Aviationstack API
-
-- Free tier available (no cost barrier)
-- Returns needed fields: scheduled/actual times, status, airline
-- Alternatives (FlightAware, OAG) are paid/enterprise, not accessible for a student project
-
-## 9. Tech stack (and why each)
-
-| Tool | Why |
-|---|---|
-| Python | Most in-demand DS language (confirmed via job market check) |
-| pandas | Data manipulation/cleaning |
-| requests | API calls |
-| python-dotenv | Load secrets from .env safely |
-| scikit-learn | ML models (once modeling phase starts) |
-| matplotlib/seaborn | Visualization |
-| Jupyter (via VS Code) | Interactive, step-by-step data exploration |
-| venv | Isolate this project's packages from others on my machine |
-| Git/GitHub | Version control, portfolio visibility |
-
-## 10. Why a virtual environment (venv)?
-
-- Keeps this project's package versions separate from other projects, avoids version conflicts
-- Standard, expected practice in real software/data jobs
-
-## 11. Why is the API key in .env, not hardcoded?
-
-- Hardcoded secrets in code pushed to GitHub are publicly exposed and exploitable, a well known security mistake worth avoiding from the start
-- .env keeps the key out of code. .gitignore ensures .env is never pushed
-- Reusable interview point: "I follow the practice of never committing secrets to version control"
-
-## 12. Why append to CSV daily instead of overwriting?
-
-- Overwriting = lose all previous days' data, no growing history
-- Appending = dataset richness grows every day, needed for eventual model training
-
-## 13. The header-row bug (and fix)
-
-- **Bug found:** script only wrote a CSV header if file didn't exist. An empty auto-created file tricked it into skipping the header
-- **Fix:** check file size in addition to file existence
-- **Lesson:** always verify a "file exists" check accounts for empty files too
-
-## 14. Why filter to only completed flights before analysis?
-
-- Concept: **target leakage / label availability**
-- scheduled/active flights have no known outcome yet, including them would corrupt statistics with unknowns
-- Only flights with a real, final outcome are valid training data
-
-## 15. Data Quality Finding #1: API's own delay field is unreliable
-
-- Compared API's dep_delay_min field against manually calculated delay (actual timestamp - scheduled timestamp)
-- **They didn't match** (e.g. API said 9 min, real gap was 24 min), no consistent pattern/offset either
-- **Decision:** stopped trusting the API's derived field. Calculate delay myself from raw timestamps instead
-- **Interview point:** "I found a data quality issue in my source, diagnosed it via cross-verification against raw data, and built my own reliable feature instead of blindly trusting the provided field."
-
-## 16. Why pd.to_datetime() before doing date math?
-
-- Raw CSV timestamps load as plain text, not real dates, to pandas
-- Can't subtract text to get a time difference
-- pd.to_datetime() converts text into real datetime objects Python can do math on
-
-## 17. Data Quality Finding #2: flight_status label lags behind reality
-
-- Found 28 flights labeled scheduled that already had a real dep_actual timestamp (i.e. already departed)
-- The status label hadn't updated yet, API staleness, not truth
-- **Decision:** built independent boolean flags (has_departed, has_arrived) from raw timestamp presence, instead of trusting the status label
-- **New rule:** a flight only counts as "complete, usable training data" if has_arrived == True, regardless of what flight_status says
-- **Interview point:** two independent, self-found data quality issues in the first two real sessions, shows careful, skeptical analysis, not blind trust in a data source
-
-## 18. Formalizing delay calculation into the collection script
-
-- Originally, delay recalculation only existed inside the Jupyter notebook (temporary, has to be redone every time)
-- **Decision:** moved the logic into collect_data.py itself via a calculate_delay() function, so every future day's data is analysis-ready at collection time, not as an afterthought
-- **Lesson:** good pipelines calculate derived values during ingestion, not as a manual notebook patch
-
-## 19. Departure delay vs arrival delay: why calculate both?
-
-- Departure delay = did the flight leave late
-- Arrival delay = did it arrive late (what actually affects a traveler, missed connections etc.)
-- A flight can depart late but make up time in the air, arrival delay is the more meaningful outcome
-- Calculating both lets us compare whether departure delay reliably predicts arrival delay
-
-## 20. Known limitations (to state proactively: not hide)
-
-- Small dataset scale (portfolio-scope, not production-scale), deliberate tradeoff for depth of understanding
-- Single month snapshot, can't yet separate "route-specific" patterns from "this month's unusual events" (weather, strikes, etc.)
-- ~~Timezone handling assumed correct~~, verified and resolved, see Finding #4 (Section 27): timestamps are actually local time mislabeled as UTC, but this does not affect within-airport delay calculations already used in analysis
-
-## 21. Data Quality Finding #3: route+date+airline is not a unique flight identifier
-
-- Attempted deduplication check by grouping on route + flight_date + airline
-- Found suspiciously high counts (e.g. 7 rows for one route/date/airline combination)
-- **Realized the identifier was flawed:** an airline can fly the same route multiple times a day (e.g. a morning and evening flight), route+date+airline doesn't uniquely identify a single flight
-- Inspected the raw API response directly to check what identifying fields actually exist
-- Found a flight.iata field (e.g. LH757), the true flight number, that had never been captured in the CSV
-- **Fix:** added flight_number as a saved column in collect_data.py, going forward
-- **Interview point:** demonstrates recognizing a flawed assumption (route+date+airline as a unique key) by testing it against real data rather than assuming it was correct, then going to the raw API source to find the actual correct identifier instead of guessing or working around it superficially
-- **Resolution confirmed:** re-ran the same duplicate check using route+flight_date+flight_number, every group returned count of exactly 1. This confirms the earlier high counts were genuinely different flights (same airline, same route, same day, different flight numbers), not duplicate data. No rows needed to be dropped, but the investigation was still necessary, since assuming either way without checking would have been a guess, not a verified conclusion.
-- **Secondary bug found and fixed:** the CSV header row had been written once, before flight_number was added to the script, so newer rows had 14 values but the header only listed 13 column names. This caused GitHub to fail rendering the CSV as a table, and would have caused column misalignment issues in pandas too. Fixed by manually correcting the header row to match the actual data.
-
-## 22. Schema evolution: historical rows had inconsistent column counts
-
-- As collect_data.py was improved over Days 1-4 (adding calculated_dep_delay, calculated_arr_delay, then flight_number), older rows in the CSV were written with fewer columns than the current header expects
-- Result: Day 1-2 rows had 11 columns, some Day 3 rows had 13, Day 4 rows have the full 14, inconsistent row widths in the same file
-- This caused GitHub's CSV table renderer to fail, and would have caused column misalignment when loading into pandas
-- **Fix:** wrote a one-time cleanup script that reads every row, detects short rows, and pads them with empty values in the correct position (inserting blanks for the newer columns while keeping airline as the last field) so every row consistently has 14 columns
-- **Lesson:** this is a normal consequence of iteratively improving a data pipeline over multiple collection days, old records don't retroactively gain new fields on their own. A cleanup/migration step is needed whenever a pipeline's schema changes mid-collection.
-- **Interview point:** understanding schema evolution and writing a migration fix for historical records is a real data engineering skill, not just a one-off bug fix
-- **Handling the two affected fields differently, based on whether backfilling is possible:**
- - calculated_dep_delay/calculated_arr_delay: these are always recomputed fresh in pandas from raw timestamps during analysis, rather than trusted from the CSV column, since raw timestamps exist for every row regardless of collection date, this works uniformly for old and new rows alike. The CSV's own calculated columns are just a convenience record, not the analysis source of truth.
- - flight_number: genuinely cannot be backfilled, the API wasn't asked to return it for older snapshots, and that information is permanently lost for those rows. **Accepted limitation:** rows collected before Day 4 remain usable for route/airline/time-based aggregate analysis, but excluded from any analysis requiring per-flight identity (e.g. tracking one specific flight's full history)
-
-## 23. Progress log
-
-This table tracks the detailed, day-by-day build-out of Phase 1 (Days 1-25), when the project was actively being built, debugged, and analyzed. From Phase 2 onward (Section 37), routine daily data collection is no longer logged row by row here, only genuinely new decisions, bugs, or findings get an entry, to keep this document focused on reasoning rather than a repetitive activity log. See Section 37 for that policy.
-
-| Date | Landed/Complete flights | Total rows | Key event |
-|---|---|---|---|
-| Day 1 | ~10 (est.) | 36 | First successful collection, 3 routes |
-| Day 2 | 29 | 67 | Found delay-field mismatch (Finding #1) |
-| Day 3 | 57 | 127 | Found status-lag issue (Finding #2), added calculate_delay() to script |
-| Day 3 (cont.) | 57 | 127 | Found deduplication flaw (Finding #3), route+date+airline not unique, added flight_number capture to script |
-| Day 4 | TBD | 152 | First collection with flight_number included. Confirmed no true duplicates existed. Found and fixed 2 schema bugs (header/row column mismatch from pipeline evolving over time) |
-| Day 5 | 84 | 178 | Continued daily collection, steady growth toward 200-300 target |
-| Day 6 (checkpoint) | 120 | 232 | Confirmed BOM-FRA delay pattern still holding with more data. Broke down by airline (delays spread across carriers, not one airline) |
-| Day 7-8 | Not individually logged | Not individually logged | Continued daily collection without a dedicated analysis checkpoint each day |
-| Day 9 (checkpoint) | 146 | 265 | Analyzed BOM-FRA by day-of-week and departure hour. Found 2 AM slot has 51.7% delay rate (largest, most reliable sample in dataset). Found and resolved Finding #4 (timezone mislabeling) |
-| Day 11 | 201 | 353 | Crossed into 200-300 complete-flight target range. Ready to move toward feature engineering / modeling phase soon |
-| Day 12 | 214 | 381 | Started modeling phase: built train/test split, trained first baseline Logistic Regression, diagnosed and fixed weak recall on delayed class via class_weight balancing |
-| Day 13 | 232 | 408 | Examined model feature importance (strong agreement with EDA). Investigated and resolved a Saturday delay-rate discrepancy between model and earlier EDA finding. Rebuilt feature set with corrected airline grouping. Re-evaluated model (perfect recall on delayed class, held with appropriate caution given small test set) |
-| Day 14 | 247 | TBD | Re-evaluated model with more data, recall dropped from 1.00 to 0.88, precision from 0.73 to 0.58, confirming the Day 13 caution that the perfect score was a small-sample artifact |
-| Day 15 | 260 | 465 | Continued daily collection. Refactored and cleaned up the exploration notebook into a clear, organized 6-section structure. Trained and compared a Random Forest model against the Logistic Regression baseline, decided to keep the simpler model |
-| Day 16 | 282 | 497 | Continued daily collection |
-| Day 17 | 297 | 522 | Built and styled the Streamlit app (departure-board theme, light/dark toggle, adjustable delay threshold, mobile-responsive layout). Calculated departure-to-arrival delay correlation (r=0.445). Fixed several silently-failed KNOWLEDGE.md edits from earlier sessions and re-verified content |
-| Day 18 | 318 | 549 | Published the app live on Streamlit Community Cloud. Fixed a deployment failure (pywinpty, a Windows-only package pulled in by pip freeze, cannot build on Linux) by trimming requirements.txt to actual runtime dependencies. Added a live "predict my flight" feature backed by the same trained model, with a visible disclaimer about the small dataset and limited features. Fixed light-mode contrast and mislabeling bugs on the theme toggle |
-| Day 19 | Not recorded | Not recorded | Continued daily collection, shape numbers not logged this day |
-| Day 20 | 350 | 603 | Continued daily collection. Pulled current model and EDA numbers for resume use (delay rate by route: BOM-FRA 33.1%, BLR-AMS 0%, DEL-CDG 5.8% at 339 flights, recall on delayed class 90% with Logistic Regression) |
-| Day 21 | 369 | 634 | Continued daily collection |
-| Day 22 | 391 | 667 | Continued daily collection |
-| Day 23 | 414 | 697 | Continued daily collection. Added a live "predict my flight" feature to the app, backed by a model retrained inside the app itself (cached, retrains only when data changes). Fixed two theme bugs: the toggle label was showing the wrong mode name, and light mode had several invisible text elements because Streamlit's own native widget labels (dropdowns, sliders, buttons) are separate from the app's custom CSS classes and were not being overridden |
-| Day 24 | 425 | 722 | Continued daily collection. Diagnosed and fixed the actual root cause of the toggle label bug, a one-render lag where the label text was computed before capturing the toggle's new value each click. Decoupled the mode indicator text from the widget's own label to fix it properly |
-| Day 25 | 442 | 749 | Continued daily collection. Marked project version 1 complete, remaining sessions are data collection only until the API budget runs out |
-
-## 24. First EDA finding: BOM-FRA is meaningfully less reliable than the other two routes
-
-- Started real EDA at 84 complete flights (didn't wait for full target, reasonable to explore early and refine as data grows)
-- Using the industry-standard 15+ minute threshold for "delayed":
- - BLR-AMS: 0% delayed (0/21 flights)
- - DEL-CDG: 0% delayed (0/38 flights)
- - BOM-FRA: 32% delayed (8/25 flights)
-- **BOM-FRA stands out as the clear outlier here**, both in delay rate and in earlier mean/median disagreement (suggesting more variable/inconsistent performance, not just a few outliers)
-- **Caveat, held honestly:** sample sizes (21-38 flights/route) are still moderate, not large, this is an early signal worth continuing to track, not yet a statistically bulletproof conclusion. Will re-run this exact analysis weekly as more data accumulates to see if the pattern holds.
-- **Why raw mean/median wasn't enough on its own:** averaging early and on-time flights together obscures the more practically useful question, "how often does this route actually run late?" The binary delay-rate metric answers that directly and is what the aviation industry itself standardizes on.
-
-## 25. BOM-FRA time-based patterns: day of week and departure hour
-
-- At ~146 complete flights, checked day-of-week and departure-hour patterns specifically for BOM-FRA
-- **Day of week:** Monday/Saturday/Sunday showed 0% delay early on. Wednesday showed 36% (largest weekday sample). Tuesday and Friday looked dramatic (83%, 100%) but rested on very small samples (3-6 flights) and were not treated as reliable standalone figures
-- **General, more defensible takeaway at the time:** delays clustered on weekdays (Tue-Fri), weekends and Monday looked clean, though this Saturday figure specifically was later found to shift substantially as more data came in (see Section 30)
-- **Departure hour (stronger finding, larger sample):** only 3 distinct scheduled departure hours exist for BOM-FRA (2 AM, 8 AM, 11 AM). 2 AM showed 51.7% delayed (largest sample in the dataset, 29 flights), 8 AM 25%, 11 AM 0%
-- **Plausible explanation (hypothesis, not proven):** very early departures may face tighter aircraft turnaround, reduced ground staff at 2 AM, or delays cascading from earlier in the day/night, framed as a hypothesis worth investigating, not a stated fact
-- **Interview point:** distinguishing findings backed by large samples from those resting on a handful of data points is core statistical literacy, not all numbers in an early analysis deserve equal confidence
-
-## 26. Data Quality Finding #4: timestamps are local time, mislabeled as UTC
-
-- Followed up on an open limitation flagged since Day 1: timezone handling was assumed correct but never explicitly verified
-- Took one BOM-FRA flight and checked scheduled flight duration: naive subtraction gave 6h15m, but a real BOM-FRA direct flight takes roughly 8-9 hours, a clear red flag
-- Manually converted both timestamps to true UTC using known airport timezones (Mumbai UTC+5:30, Frankfurt UTC+2 in summer): recalculated duration came to 9h45m, a realistic flight time
-- **Conclusion:** the API returns each timestamp in local time at that airport, but labels it with a +00:00 (UTC) suffix instead of the correct local offset, a mislabeling bug in the data source, not a value error
-- **Impact assessed carefully:** departure delay and arrival delay are each computed from two timestamps at the *same* airport, so the mislabeling cancels out, every route/airline/day/hour finding so far remains valid and unaffected. Any calculation mixing departure and arrival timestamps together (e.g. true flight duration) would be wrong if attempted, but no such calculation has been made
-- **Interview point:** verifying a flagged assumption rather than leaving it permanently unresolved, then precisely scoping which existing results are and are not affected, is stronger practice than either ignoring the risk or redoing everything unnecessarily
-
-## 27. Feature engineering: grouping rare airlines before encoding
-
-- Built initial feature set via one-hot encoding (route, airline, dep_hour, day_of_week, is_weekend), first attempt produced 24 columns
-- Flagged a concern: several airlines (Alitalia, DHL Air, Lufthansa Cargo, Cathay Pacific) had only 2-8 flights each, meaning their one-hot columns would be almost entirely False, risking overfitting to near-noise rather than real patterns
-- **Decision:** grouped any airline with fewer than 10 flights into a single "Other" category before encoding
-- **Result:** reduced to 21-22 features (count shifts slightly as the dataset grows and airlines cross the 10-flight threshold), every remaining category backed by a meaningful sample size
-- **is_weekend as a simpler complement to day_of_week:** given day-of-week findings had shakier confidence on individual days at the time, including a simpler binary weekday/weekend flag gives the model a more robust, lower-variance signal alongside the more granular day feature
-- **Interview point:** recognizing when a categorical feature has too many rare levels for the available data, and choosing a principled way to consolidate them, is standard, important feature engineering practice
-
-## 28. First baseline model: Logistic Regression
-
-- At 214 complete flights (176 not delayed, 38 delayed, roughly 18% delay rate, moderately imbalanced), built the first model
-- **Train/test split:** 80/20, stratified on the target to preserve the delay ratio in both sets
-- **Why Logistic Regression first:** simple, fast, interpretable, establishes a baseline before trying anything more complex
-- **First attempt (default settings):** accuracy 0.84, but recall on the delayed class was only 0.25, missing 75% of real delays despite looking "accurate" overall. Direct demonstration of why accuracy alone is misleading under class imbalance
-- **Fix tried:** class_weight='balanced', tells the model to weight the minority (delayed) class more heavily during training
-- **Result:** recall on delayed class jumped from 0.25 to 0.88, precision 0.70, F1 improved from 0.36 to 0.78, overall accuracy improved to 0.91
-- **Honesty check, held deliberately:** test set was only 43 flights with just 8 delayed, a single flight's outcome swings these percentages by over 12 percentage points. A genuinely promising early result, not yet proof of a robust model
-- **Interview point:** diagnosing a specific weakness (poor recall on the minority class), understanding why (imbalance not being accounted for), then applying a targeted fix and verifying it worked, is a methodical modeling approach
-
-## 29. Model feature importance, and a finding that changed with more data
-
-- Examined Logistic Regression coefficients on the balanced model
-- **Strong agreement with EDA:** route_BOM-FRA was the single strongest delay-pushing feature, route_BLR-AMS the strongest on-time-pushing feature, the model independently learned the same core pattern found by hand in EDA, a good validation signal
-- **dep_hour** showed later departure hours associated with lower delay risk, directionally consistent with the BOM-FRA 2 AM vs 11 AM finding
-- **Discrepancy found and investigated, not smoothed over:** the model's day_of_week_Saturday coefficient was positive (pushes toward delay), which seemed to contradict the earlier EDA finding that BOM-FRA Saturdays were 0% delayed
-- **Resolution:** re-ran the day-of-week-by-route breakdown with the larger, current dataset, BOM-FRA Saturday had risen to 50% delayed (8/16 flights), up from an earlier small-sample 0% based on only 6 flights. BLR-AMS and DEL-CDG remained 0% delayed on Saturday. The model's coefficient was correct for the current data, the earlier EDA finding was accurate for its own smaller sample, but had since been superseded as more data came in
-- **Interview point:** a finding that's true for 6 data points may not hold at 16, that's not a mistake, it's exactly why findings need re-checking as data grows rather than being treated as permanently settled. Investigating an apparent model/EDA discrepancy rather than ignoring it demonstrates rigor
-
-## 30. Model re-evaluated at 232 complete flights: with corrected feature set
-
-- Rebuilt the feature set with more data (232 complete flights) and confirmed the airline-grouping fix was correctly applied
-- Re-trained the balanced Logistic Regression: precision 0.73, **recall 1.00**, F1 0.84, overall accuracy 0.94, caught all 8 delayed test flights, 3 false alarms
-- **Held with deliberate caution, not pure celebration:** a perfect 100% recall on only 8 delayed test examples is a result to treat skeptically. Two honest possibilities: the features genuinely capture a strong pattern, or the test set is still small enough that a lucky split is entirely plausible
-- **Plan stated at the time:** continue tracking this metric as data grows, a single perfect score on 8 examples is not, by itself, proof of anything definitive
-- **Interview point:** treating an unexpectedly perfect result with more scrutiny, not less, is a mark of statistical maturity
-
-## 31. Prediction confirmed: model performance settled with more data
-
-- At 247 complete flights, re-ran the exact same balanced Logistic Regression pipeline
-- **Result:** recall on delayed class dropped from the earlier 1.00 to 0.88 (7/8 caught), precision dropped from 0.73 to 0.58 (5 false alarms, up from 3), overall accuracy dropped from 0.94 to 0.88
-- **This directly confirms the caution flagged in Section 30:** the earlier perfect recall was, as suspected, partly a small-test-set artifact. Performance settled to a more realistic, still genuinely solid level (0.88 recall) rather than the possibly-lucky perfect score seen before
-- **Interview point:** being able to say "I predicted this result would soften with more data, and it did" is a stronger story than either reporting the perfect score without caveats, or never checking whether it held up
-
-## 32. Second model tried: Random Forest compared against Logistic Regression
-
-- At 260 complete flights, trained a Random Forest classifier (100 trees, class_weight='balanced') on the identical train/test split and feature set as the Logistic Regression baseline, for a fair comparison
-- **Result:** virtually identical performance, precision 0.58, recall 0.88, F1 0.70, accuracy 0.88, nearly matching Logistic Regression at the same data size
-- **Interpretation:** Random Forest's ability to model non-linear feature interactions did not produce a meaningful improvement over the simpler linear model at this dataset size (~260 flights), a normal, expected outcome in small-data settings
-- **Decision: kept Logistic Regression as the primary/reported model.** Given equal performance, the simpler, faster, more directly interpretable model (already cross-validated against EDA findings) is the better choice
-- **Interview point:** trying a more complex model and choosing not to adopt it, because it didn't outperform a simpler baseline, demonstrates disciplined model selection, added complexity should earn its place with genuine performance gains
-
-## 33. Departure delay vs arrival delay: how related are they?
-
-- Question worth answering directly rather than assuming: does a late departure actually predict a late arrival, or are they fairly independent?
-- Calculated the Pearson correlation between actual_dep_delay_min and actual_arr_delay_min for BOM-FRA: **r = 0.445**
-- **Interpretation:** a moderate, positive relationship, not a strong or near-perfect one. Departing late does somewhat associate with arriving late, but roughly half the variation in arrival delay isn't explained by departure delay at all, likely reflecting in-flight factors (headwinds, air traffic holding, rerouting) not captured in this dataset
-- **Why this matters for how findings are stated:** it would be inaccurate to claim late departures "cause" late arrivals based on this data alone. The precise claim is that the two are moderately correlated, not causally proven
-- **Interview point:** distinguishing correlation from causation, and stating a precise correlation coefficient rather than a vague "they're related" claim, shows real statistical precision
-
-## 34. Closing the gap between a trained model and an actually usable app
-
-- Realized the deployed app only showed historical, descriptive statistics (delay rate by route, by hour) and never let anyone actually use the trained model to get a prediction for a hypothetical future flight. The model existed, got evaluated, and then sat unused.
-- **Added a "predict my flight" feature:** pick a route, airline, day of week, and departure hour, get the model's live predicted probability of delay
-- **Model is retrained inside the app itself** (using the same feature engineering and Logistic Regression setup as the notebook), cached so it only retrains when the underlying data actually changes, not on every click
-- **A visible, un-hideable disclaimer sits next to the prediction**, stating plainly that this is a small self-collected dataset with only 4 factors, does not account for weather, air traffic, or aircraft rotation delays, and should be read as a historical pattern, not a forecast
-- **Why add a caveated prediction rather than either hiding the model or presenting it overconfidently:** real production delay-prediction systems also aren't perfect even with far more data and features. The honest move is not to avoid exposing a limited model, it is to be explicit about exactly how limited it is, the same principle applied throughout this project's other findings
-
-## 35. Two theme bugs found while testing light mode
-
-- **Bug 1: toggle label showed the wrong mode name.** An earlier version had a static label ("Dark mode") regardless of which theme was actually active. Fixed by making the label read the current session state and display the mode that is actually showing.
-- **Bug 2: several text elements were invisible in light mode.** Streamlit renders its own native widget labels (selectbox labels, slider tick values, button text) using its own internal styling, completely separate from this app's custom CSS classes. These were never overridden, so they kept a color suited to the dark theme and disappeared against the light background.
-- **Fix:** added explicit CSS overrides targeting Streamlit's own internal widget selectors (label text, slider value display, select box text, button text) so they follow the same theme colors as the rest of the app, in both modes
-- **Follow-up fix:** the Plotly chart's own axis tick labels and hover tooltips were a separate, third gap, since Plotly renders its own text independent of both Streamlit's chrome and this app's custom CSS. The bar-label text was already theme-aware, but the axis tick font only specified font family, not color, so it fell back to Plotly's own default instead of following the theme. Hover tooltips had no theme styling at all. Fixed by explicitly setting tickfont color on both axes and adding a hoverlabel configuration tied to the theme, plus a CSS fallback (`.js-plotly-plot .plotly text`) targeting Plotly's rendered SVG text directly as a safety net.
-- **Interview point:** a real, sometimes-overlooked lesson when styling apps built on top of a framework like Streamlit, and further on top of a charting library like Plotly: each layer has its own default styling system, completely separate from the others. A custom theme needs to be applied at every layer individually, the page CSS, the framework's native widgets, and the charting library's own rendering, since none of them automatically inherit from the others.
-
-## 36. Phase 2: switching to 3 new routes on a fresh API quota cycle
-
-- The Aviationstack free tier resets its 100-request budget monthly. With Phase 1 routes (BOM-FRA, DEL-CDG, BLR-AMS) reaching a solid final sample size (442+ flights) on the prior cycle, a fresh 100-request budget became available for a new month
-- **Considered running all 6 routes together, rejected it.** At 6 routes per day, the ~100-request budget only covers 16-17 days, meaning the new 3 routes would end up with roughly 50 flights each versus 400+ on the original 3, a nearly 9x sample size gap. This would directly contradict the depth-over-breadth reasoning already documented in Section 7, and would make any cross-comparison between old and new routes unreliable due to the sample size mismatch alone, not a real difference
-- **Decision: stop collecting Phase 1 routes, start collecting 3 new routes instead**, giving the new routes a comparable ~33-day window and comparable depth, rather than diluting everything by running 6 at once
-- **Historical Phase 1 data is not deleted or hidden.** It remains permanently in flights_log.csv, and the switch is documented directly in code comments in collect_data.py, so anyone reading the script (not just this doc) understands why the active route list changed without needing to dig through git history
-- **New routes chosen from researched top-10 India-Europe route list**, picked specifically to add value beyond just "more data": Delhi-London (DEL-LHR, the single busiest India-Europe corridor overall, adds a new destination country), Mumbai-Amsterdam (BOM-AMS, adds the Netherlands, distinct from the existing Frankfurt/Paris coverage), and Bengaluru-Frankfurt (BLR-FRA, same destination as the existing BOM-FRA route but a different Indian origin city, enabling a same-destination cross-city comparison)
-- **Interview point:** treating "we have more API budget" as a reason to research and deliberately choose new coverage, rather than just re-running the same routes or diluting sample depth by adding routes carelessly, keeps the project's stated principles consistent across its full timeline instead of quietly abandoning them partway through
-- **Logging policy from this point forward:** daily data collection for the Phase 2 routes is not individually logged in the Section 23 progress table going forward, since a repeated "continued daily collection" row for every single day adds volume without adding reasoning, and this document's purpose is to capture decisions and findings, not serve as an activity log. Data collection continues daily, the same way it did for Phase 1, using the same script and process already documented above. Only genuinely new events, a bug, a finding, a design decision, get their own entry, the same standard already applied throughout this document.
-
-## 37. Still to come (will update as we go)
-
-- Continue daily collection on Phase 2 routes until API request budget (100/month) is used up
-- Port Random Forest comparison code from scratch notebook into the clean explore.ipynb
-- Deduplicate historical flights using flight_number now that it's consistently captured
-- Run the full EDA and modeling pipeline on Phase 2 routes once they reach a comparable sample size to Phase 1
+It exists as a personal portfolio project, built to demonstrate a full pipeline from raw data collection through a deployed prediction feature, using genuinely self-collected data rather than a pre-packaged dataset. Aviation was chosen as the subject out of real personal interest in travel, not because it was assigned.
 
 ---
 
-*Next update: after the next genuinely new decision, bug, or finding, not routine data collection.*
+## 2. Tech Stack and Why
+
+### API: Aviationstack
+**Considered:** FlightAware, OAG
+**Chosen:** Aviationstack
+**Reasoning:** FlightAware and OAG are paid/enterprise products, not accessible for a self-funded project. Aviationstack has a usable free tier (100 requests/month) that returns the fields needed (scheduled/actual times, status, airline).
+
+### Route scope: 3 active routes per phase, not 10+
+**Considered:** tracking 10-15 routes at once for broader coverage
+**Chosen:** 3 routes tracked daily per phase
+**Reasoning:** the free API budget (100 requests/month, 1 request per route per day) means more routes directly means fewer requests per route. At 10+ routes, each route would only accumulate 7-10 flights, too few to draw any reliable conclusion. At 3 routes, each accumulates 30-50+ flights, enough for meaningful comparison. Depth over breadth was the deliberate tradeoff.
+
+### Model: Logistic Regression over Random Forest
+**Considered:** Random Forest (higher expressiveness, can capture non-linear feature interactions)
+**Chosen:** Logistic Regression, with `class_weight='balanced'`
+**Reasoning:** both models were trained on the identical train/test split and feature set for a fair comparison. Random Forest produced virtually identical performance (recall 0.88 vs 0.88, precision 0.58 vs 0.58 at the same dataset size). The added complexity bought nothing. Logistic Regression is simpler, faster to retrain, and its coefficients are directly interpretable, which let its predictions be cross-checked against manual EDA findings. Complexity should earn its place with a real performance gain, and here it didn't.
+
+### Delay threshold: 15 minutes, industry standard
+**Considered:** an arbitrary custom cutoff
+**Chosen:** 15+ minutes late counts as delayed
+**Reasoning:** this is the actual threshold used in US DOT and most airline delay reporting, so results are comparable to how the aviation industry itself measures delay, not a number invented for this project. The deployed app also includes an adjustable slider (5 to 60 minutes) so the threshold isn't hidden as a fixed assumption, but 15 remains the analyzed default.
+
+### Secrets: `.env` file, not hardcoded
+**Considered:** hardcoding the API key directly in the script
+**Chosen:** environment variable loaded from a local `.env` file, excluded via `.gitignore`
+**Reasoning:** a hardcoded key pushed to a public GitHub repo is immediately exposed and exploitable by anyone. This is a basic, well known security practice worth following from the start rather than fixing after the fact.
+
+### Environment: `venv`
+**Chosen:** an isolated Python virtual environment per project
+**Reasoning:** keeps this project's package versions independent of anything else on the same machine, avoids version conflicts, and is standard practice in real development work.
+
+### Frontend: Streamlit + Plotly
+**Considered:** Streamlit's own built-in chart functions for the visualizations
+**Chosen:** Plotly, embedded in Streamlit
+**Reasoning:** Plotly gives full control over chart styling (colors, fonts, hover behavior) needed to match a custom light/dark theme. Streamlit's built-in charts are faster to write but don't expose enough styling control for a themed, polished result.
+
+---
+
+## 3. Data and System Overview
+
+**Pipeline flow:** a daily script calls the API once per active route and appends the results to a single CSV file, `data/flights_log.csv`. The file is never overwritten, only appended to, so the dataset grows richer every day rather than losing history. A Jupyter notebook loads that CSV, cleans it, computes derived fields (real delay values, completion flags), runs the analysis, and trains the model. The deployed app reads the exact same CSV and recomputes the same derived fields fresh on load, so the notebook and the app are never out of sync with each other.
+
+**Assumptions made early that turned out to need checking** (each is explained in full under Challenges below, listed here because this is where each of the four major bugs in this project actually originated):
+- Assumed the API's own delay field could be trusted. It could not.
+- Assumed the `flight_status` field reliably indicated whether a flight was complete. It did not, it lagged behind reality.
+- Assumed timestamps were correctly labeled in UTC. They were local time, mislabeled.
+- Assumed route plus date plus airline was enough to uniquely identify a flight. It was not, since an airline can run the same route more than once a day.
+
+Naming these assumptions explicitly, rather than only the fixes, is deliberate: assumptions are exactly where bugs hide, whether or not they turn out to be wrong.
+
+---
+
+## 4. Discoveries and Findings
+
+**One route is meaningfully less reliable than the others.** Across the Phase 1 dataset (442+ flights), one route consistently ran a 15 to 30%+ delay rate while the other two stayed near 0%. This gap held up and was re-confirmed multiple times as the dataset grew from dozens to hundreds of flights, not a one-time artifact.
+
+**The delay is spread across airlines, not one carrier.** On the less reliable route, several different airlines each showed elevated delay rates. This points toward a route or airport-level factor rather than a single operator's problem, an important distinction for what the finding actually means.
+
+**Departure hour matters more than expected.** A very early departure slot on the same route showed roughly 50% delay rate, versus 0% for a late-morning slot, backed by the largest single sample in the entire dataset.
+
+**A finding that changed as more data came in, and was kept rather than quietly fixed.** An early read on one weekday's delay rate showed 0%, based on only 6 flights. Once the sample for that same day grew to 16 flights, the rate had shifted to 50%. Both numbers are documented, with the sample size next to each, rather than only showing the final "correct" one. Conclusions drawn from a small, growing dataset need to be held loosely and re-checked, not treated as settled the first time they're calculated.
+
+**Departure delay and arrival delay are only moderately correlated, not strongly.** The Pearson correlation between the two came out to **r = 0.445**. Departing late does associate with arriving late, but roughly half the variation in arrival delay is explained by something else entirely, likely in-flight factors like headwinds or air traffic holding, not captured in this dataset. It would be inaccurate to claim one causes the other based on this alone.
+
+**The trained model's coefficients independently agreed with the manual EDA findings.** The same route and departure-hour patterns that were found by hand also emerged as the strongest coefficients in the trained model, without being told to look for them. This is a useful cross-validation signal that the model learned a real pattern rather than noise.
+
+---
+
+## 5. Challenges and How They Were Solved
+
+### The API's own delay field was unreliable
+
+**Problem:** the API returns its own `dep_delay_min` field, but the numbers didn't line up with what seemed reasonable on inspection.
+
+**Investigation:** cross-checked the API's reported delay against a delay calculated manually, actual timestamp minus scheduled timestamp, for the same flights. The two numbers didn't match, and there was no consistent offset between them.
+
+**Fix:** stopped trusting the API's derived field entirely. Delay is now always calculated fresh from the two raw timestamps.
+
+**Why this fix:** raw timestamps are the most primitive data available, less likely to carry a hidden calculation bug than a field someone else already processed. Recomputing from source is more transparent than trying to guess or correct the API's own logic.
+
+### The flight status label lagged behind reality
+
+**Problem:** some flights were labeled `scheduled` in the data despite already having a real departure timestamp recorded.
+
+**Investigation:** checked how many `scheduled`-labeled rows had a non-empty actual departure time. Found a meaningful number, confirming the status field was stale, not reflecting what had actually happened yet.
+
+**Fix:** built independent flags, `has_departed` and `has_arrived`, based on whether the raw timestamp fields were actually filled in, instead of trusting the status label at all. A flight only counts as complete, usable data if `has_arrived` is true.
+
+**Why this fix:** the raw timestamp's presence or absence is a fact, not an interpretation. The status label is the API's own summary of that fact, and summaries can go stale. Checking the underlying fact directly removes that risk.
+
+### Route plus date plus airline was not a unique flight identifier
+
+**Problem:** an attempt to check for duplicate rows using route, date, and airline together produced suspiciously high counts, more rows per group than expected.
+
+**Investigation:** realized an airline can run the same route more than once in a single day, a morning and an evening departure, for example. Route plus date plus airline doesn't distinguish between them. Checked the raw API response directly and found a `flight.iata` field, the actual flight number, that had never been captured.
+
+**Fix:** started capturing the real flight number as its own column. Re-ran the duplicate check using route, date, and flight number together, every group returned a count of exactly one, confirming the earlier high counts were genuinely different flights, not duplicated data.
+
+**Why this fix:** testing an assumption against real data, rather than trusting it, is what caught the problem in the first place. Going to the raw source for the correct identifier, instead of guessing or working around the flawed one, produces a fix that's actually correct rather than a patch that happens to look right.
+
+### Timestamps were local time, mislabeled as UTC
+
+**Problem:** a scheduled flight duration, calculated by naive subtraction of two timestamps, came out to roughly 6 hours for a route that realistically takes 8 to 9 hours.
+
+**Investigation:** manually converted both timestamps to true UTC using the known timezone offset of each airport. The recalculated duration came out to a realistic 9 hours 45 minutes. This confirmed the API was returning each timestamp in local time at that airport, but labeling it with a UTC suffix instead of the correct local offset.
+
+**Fix:** verified the scope of the impact rather than assuming the worst. Departure delay and arrival delay are each calculated from two timestamps at the *same* airport, so the mislabeling cancels out in that specific subtraction, meaning every delay-based finding up to that point remained valid. Only a calculation mixing timestamps from two different airports, like true flight duration, would actually be affected, and no such calculation had been made.
+
+**Why this fix:** the instinct to redo everything after finding a bug is often wrong. Precisely scoping what is and isn't affected, rather than either ignoring the risk or overreacting to it, is the more defensible response.
+
+### A CSV header bug silently skipped writing column names
+
+**Problem:** the very first row of the data file was missing its header entirely.
+
+**Investigation:** the collection script only wrote a header if the file didn't already exist. An empty file had been auto-created beforehand (by an editor opening it), which tricked the check into thinking the file, and its header, already existed.
+
+**Fix:** changed the check to also verify the file has a non-zero size, not just that it exists.
+
+**Why this fix:** a minimal, targeted correction to the actual logical gap, rather than a broader rewrite of the whole write routine.
+
+### Schema evolution left old rows with fewer columns than new ones
+
+**Problem:** as the collection script gained new fields over time (calculated delay values, then flight number), older rows in the CSV still only had the original, smaller set of columns. The file ended up with inconsistent row widths.
+
+**Investigation:** confirmed this by counting fields per row across different days, early rows had 11, some middle rows had 13, later rows had the full 14.
+
+**Fix:** wrote a one-time cleanup script that detects short rows and pads them with empty values in the correct position, preserving the newest field (airline) as the last column throughout.
+
+**Why this fix:** old rows can't retroactively gain data that was never collected for them, so padding with genuinely empty values is the honest representation, not an attempt to fabricate missing history. A separate note documents that the two derived delay columns can always be recomputed fresh from raw timestamps regardless of when a row was collected, while the flight number field genuinely cannot be backfilled for older rows and remains a known, accepted gap.
+
+### The theme toggle showed the wrong mode name
+
+**Problem:** the light/dark mode switch consistently displayed the opposite of whatever mode was actually active.
+
+**Investigation:** the label text was being computed *before* capturing what the toggle widget actually returned for that click, so it always displayed the *previous* render's state, a permanent one-step lag.
+
+**Fix:** decoupled the mode-name text from the toggle widget's own label entirely. The text is now computed as a separate element, after the toggle's new value has already been captured in that same render.
+
+**Why this fix:** the bug wasn't really about the toggle, it was about the order operations happened in. Fixing the actual sequencing, rather than trying to patch the label text itself, resolved it cleanly.
+
+### Text was invisible in light mode, across three separate layers
+
+**Problem:** switching to light mode left several pieces of text unreadable, custom labels, native dropdown and slider text, and chart axis labels.
+
+**Investigation:** found this wasn't one bug but three, stacked in different rendering layers. Custom app text was controlled by CSS classes written for this app. The framework's own native widgets (dropdowns, sliders, buttons) render with their own internal styling, completely separate from the app's custom classes. The charting library renders its own SVG text, separate again from both of the above, and its axis tick labels had only a font family specified, not a color, so they fell back to a default that didn't match the theme.
+
+**Fix:** applied theme-aware overrides at each layer individually, the custom CSS classes, explicit CSS targeting the framework's native widget selectors, and explicit color settings on the chart library's axis and hover tooltip configuration, plus a CSS fallback targeting the chart's rendered text directly as a safety net.
+
+**Why this fix:** a single CSS theme applied to the page doesn't automatically cascade into a UI framework's own components or a separate charting library's rendering, since each maintains its own default styling system. Each layer needed to be checked and fixed on its own terms rather than assumed to inherit from the others.
+
+### Deployment failed due to a Windows-only package
+
+**Problem:** the deployed app failed to build with an error about a package called `pywinpty`.
+
+**Investigation:** `pywinpty` is a Windows-only terminal helper package, part of a local Jupyter development environment, that had been captured into `requirements.txt` by running `pip freeze` on a local Windows machine. The deployment environment runs Linux and cannot build a Windows-specific package.
+
+**Fix:** trimmed `requirements.txt` down to only the packages actually imported by the app and the collection script, rather than a full dump of everything installed locally for notebook work.
+
+**Why this fix:** `requirements.txt` should describe what the deployed code needs to run, not a snapshot of an entire local development environment. The two are often different, and conflating them is what caused this failure.
+
+### A newer library version broke on startup
+
+**Problem:** after a fresh local reinstall, the app crashed immediately on startup with an internal error inside the web framework's own middleware.
+
+**Investigation:** the error traced to an incompatibility between the newest release of the web framework and one of its own internal dependencies, a bug in that specific version combination, not in this project's code.
+
+**Fix:** pinned the framework to a known stable version in `requirements.txt` instead of letting installs default to the newest release.
+
+**Why this fix:** pinning a dependency version is a standard way to protect a working project from an upstream breaking change that has nothing to do with the project's own code.
+
+### A virtual environment broke after the project folder was moved
+
+**Problem:** after moving the project to a different folder, every command that used to work started failing with a "file not found" error pointing at the old folder path.
+
+**Investigation:** virtual environments on Windows bake the absolute folder path into their activation scripts at creation time. Moving the folder doesn't update those scripts, so they keep pointing at a location that no longer exists.
+
+**Fix:** deleted the old virtual environment and created a fresh one at the new location.
+
+**Why this fix:** trying to manually patch every path reference inside a virtual environment is fragile and unnecessary, recreating it is fast and guaranteed correct.
+
+---
+
+## 6. Limitations
+
+**Portfolio-scale dataset, not production-scale.** This is a deliberate tradeoff, prioritizing depth of understanding over raw dataset size, not an oversight.
+
+**Single time-window snapshot per phase.** Each phase is collected over roughly a month. Seasonal effects like weather or holiday travel patterns can't yet be separated from genuine route-specific reliability.
+
+**Flight number is only available from a certain point in the project onward.** Rows collected before that point remain usable for aggregate, route-level analysis, but cannot support any analysis requiring per-flight identity.
+
+**The model's test set is small.** Results are re-evaluated as the dataset grows rather than treated as final. An early result that looked unusually strong was flagged with appropriate skepticism, and did in fact soften once more data came in, confirming that caution was warranted.
+
+**The live prediction feature is a directional estimate, not a weather-aware forecast.** It's trained on a small, self-collected dataset using only four factors, route, airline, day of week, and departure hour. It does not account for weather, air traffic conditions, or aircraft rotation delays, all of which genuinely affect whether a real flight runs on time. This is stated directly next to every prediction in the app itself, not only here.
+
+---
+
+## 7. Changelog
+
+**Day 1:** first successful data collection across the initial three routes.
+
+**Day 2:** found the API's own delay field was unreliable, switched to calculating delay from raw timestamps.
+
+**Day 3:** found the flight status field lagged behind reality, built independent completion flags. Also found route plus date plus airline wasn't a unique flight identifier, started capturing the real flight number.
+
+**Day 4:** confirmed no true duplicate flights existed once checked with the correct identifier. Found and fixed two schema bugs from the pipeline evolving over multiple days.
+
+**Day 5 to 11:** steady daily collection, crossed into a large enough sample size to move toward modeling.
+
+**Day 12:** built the first baseline model, Logistic Regression, diagnosed and fixed weak recall on the delayed class using class weighting.
+
+**Day 13:** reviewed model feature importance, found strong agreement with manual EDA findings. Investigated and resolved an apparent discrepancy between an early EDA finding and the model's own coefficients, the earlier finding had been based on a smaller sample that later shifted.
+
+**Day 14:** re-evaluated the model with more data. A previously very strong recall score settled to a more realistic level, as had been anticipated and flagged in advance.
+
+**Day 15:** refactored the analysis notebook into a clean, organized structure. Trained and compared a second model, Random Forest, against the baseline, and kept the simpler model after confirming equal performance.
+
+**Day 17:** built and styled the live web app.
+
+**Day 18:** deployed the app publicly. Diagnosed and fixed a deployment failure caused by an OS-specific package in the dependency file. Added a live prediction feature backed by the trained model, with a visible disclaimer.
+
+**Day 20:** calculated the correlation between departure delay and arrival delay.
+
+**Day 23 to 24:** found and fixed a theme toggle bug where the mode label lagged one step behind the actual state.
+
+**Day 25:** the first phase of route tracking reached its target sample size and was marked complete.
+
+**Day 26 onward:** switched to a new set of routes on a fresh monthly API quota, chosen deliberately for new geographic coverage rather than repeating the same three routes. From this point forward, routine daily data collection is not logged here individually, only genuinely new decisions, bugs, or findings are, to keep this document focused on reasoning rather than a repetitive activity log.
+
+**Later:** fixed a light-mode text visibility bug spanning three separate styling layers (custom CSS, framework native widgets, and chart library rendering). Pinned the web framework's version after a newer release broke on startup due to an internal incompatibility. Rebuilt the virtual environment after the project folder was moved to a new location, which had broken all its activation scripts.
